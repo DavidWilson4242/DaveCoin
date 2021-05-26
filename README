@@ -1,0 +1,4 @@
+There's no makefile yet, coming later.
+
+For now, compile with:
+g++ -DNDEBUG -g2 -fPIC -pthread -pipe *.cpp -o test -std=c++17 -lcryptopp
