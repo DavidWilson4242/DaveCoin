@@ -5,13 +5,13 @@
 
 int main(int argc, char *argv[]) {
    
-  // my keys
+  // my keys (load from file)
   DSA::PublicKey public_key;
   DSA::PrivateKey private_key;
   Sig::LoadKey("keys/public_key.key", public_key);
   Sig::LoadKey("keys/private_key.key", private_key);
 
-  // target keys
+  // target keys, the address we're sending a transaction to
   auto [target_public, target_private] = Sig::GenerateKeys();
   
   // build transaction 
@@ -20,22 +20,34 @@ int main(int argc, char *argv[]) {
 
   Tx_Input input;
   Tx_Output output;
-
+  
+  // dummy hashes
   input.block_hash = "ABCDEFG";
   input.input_hash = "XYZZZZZ";
   input.index = 3;
 
-  output.target = public_key;
+  // transaction target
+  output.target = target_public;
   output.index = 3;
   output.coins = 100;
 
   inputs.push_back(input);
   outputs.push_back(output);
-
+  
+  // create transaction and sign it w/ our private key
   Tx t0 = Tx::ConstructAndSign(inputs, outputs, public_key, private_key);
+
+  // decode the transaction (this would actually be done after a
+  // node receives word of the transaction via a network call)
   Tx t1 = Tx::DecodeAndVerify(t0.Serialize(), t0.sig, public_key); 
   
-  std::cout << (t1.outputs[0].target == t0.outputs[0].target) << std::endl;
+  // was it decoded properly? 
+  bool success = t1.outputs[0].target == t0.outputs[0].target;
+  if (success) {
+    std::cout << "successfully decoded tx packet\n";
+  } else {
+    std::cout << "failed to decode tx packet\n";
+  }
 
   return 0;
 
