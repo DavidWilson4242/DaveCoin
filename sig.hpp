@@ -25,6 +25,7 @@ namespace Sig {
 
   template <typename T>
   void SaveKey(const std::string& filename, const DSA::PublicKey& key);
+
 };
 
 /* saves a DSA key to file */
