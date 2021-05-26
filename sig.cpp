@@ -4,7 +4,7 @@
 using namespace CryptoPP;
 
 /* generates a DSA pair of public & private keys */
-std::pair<DSA::PublicKey, DSA::PrivateKey>
+std::tuple<DSA::PublicKey, DSA::PrivateKey>
 Sig::GenerateKeys() {
   
   AutoSeededRandomPool rng;
@@ -20,7 +20,7 @@ Sig::GenerateKeys() {
     throw std::runtime_error("DSA generation failed");
   }
 
-  return std::make_pair(public_key, private_key);
+  return {public_key, private_key};
 
 }
 

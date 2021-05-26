@@ -4,17 +4,85 @@
 #include "tx.hpp"
 
 std::string Tx_Input::Serialize() const {
-  return "";
-}
 
-std::string Tx_Output::Serialize() const {
-  return "";
+  std::stringstream s;
+  
+  uint32_t blocksize = block_hash.size();
+  uint32_t inputsize = input_hash.size();
+  
+  /* write block hash size, block hash */
+  s.write(reinterpret_cast<const char *>(&blocksize), sizeof(uint32_t));
+  s << block_hash;
+
+  /* write tx hash size, tx hash */
+  s.write(reinterpret_cast<const char *>(&inputsize), sizeof(uint32_t));
+  s << input_hash;
+  
+  /* write index */
+  s.write(reinterpret_cast<const char *>(&index), sizeof(uint32_t));
+
+  return s.str();
+
 }
 
 Tx_Input Tx_Input::Decode(const std::string& serial, size_t *cr = nullptr) {
   
   Tx_Input txi;
-  uint32_t input_size;
+  uint32_t blocksize, inputsize;
+  const char *sdata = serial.c_str();
+  size_t cr_dummy = 0;
+  
+  /* cursor into the string is optional.  use 0 if not passed */
+  if (cr == nullptr) {
+    cr = &cr_dummy;
+  }
+  
+  /* read block hash size, block hash */
+  blocksize = *reinterpret_cast<const uint32_t *>(&sdata[*cr]);
+  *cr += 4;
+  txi.block_hash = serial.substr(*cr, *cr + blocksize);
+  *cr += blocksize; 
+
+  /* read tx hash size, tx hash */
+  inputsize = *reinterpret_cast<const uint32_t *>(&sdata[*cr]);
+  *cr += 4;
+  txi.input_hash = serial.substr(*cr, *cr + inputsize);
+  *cr += inputsize;
+
+  /* read index */
+  txi.index = *reinterpret_cast<const uint32_t *>(&sdata[*cr]);
+  *cr += 4;
+
+  return txi;
+
+}
+
+std::string Tx_Output::Serialize() const {
+
+  std::stringstream s;
+  
+  /* write target key size, target key */
+  std::string target_string;
+  uint32_t keysize;
+  target.Save(StringSink(target_string).Ref());
+  keysize = (uint32_t)target_string.size();
+  s.write(reinterpret_cast<const char *>(&keysize), sizeof(uint32_t));
+  s << target_string;
+
+  /* write index */
+  s.write(reinterpret_cast<const char *>(&index), sizeof(uint32_t));
+
+  /* write coin amount */
+  s.write(reinterpret_cast<const char *>(&coins), sizeof(uint64_t));
+
+  return s.str();
+
+}
+
+Tx_Output Tx_Output::Decode(const std::string& serial, size_t *cr = nullptr) {
+
+  Tx_Output txo;
+  uint32_t keysize;
   const char *sdata = serial.c_str();
   size_t cr_dummy = 0;
   
@@ -23,17 +91,21 @@ Tx_Input Tx_Input::Decode(const std::string& serial, size_t *cr = nullptr) {
     cr = &cr_dummy;
   }
 
-  /* read input size */
-  input_size = *reinterpret_cast<const uint32_t *>(&sdata[*cr]);
+  /* read target size, target public key */
+  keysize = *reinterpret_cast<const uint32_t *>(&sdata[*cr]);
   *cr += 4;
+  std::vector<byte> key_material(&sdata[*cr], &sdata[*cr] + keysize);
+  ArraySource key_source(&key_material[0], key_material.size(), true);
+  txo.target.BERDecode(key_source);
+  *cr += keysize;
 
-  return txi;
-
-}
-
-Tx_Output Tx_Output::Decode(const std::string& serial, size_t *cr = nullptr) {
-
-  Tx_Output txo;
+  /* read index */
+  txo.index = *reinterpret_cast<const uint32_t *>(&sdata[*cr]);
+  *cr += 4;
+  
+  /* read coins */
+  txo.coins = *reinterpret_cast<const uint32_t *>(&sdata[*cr]);
+  *cr += 4;
 
   return txo;
 
@@ -77,43 +149,6 @@ std::string Tx::Serialize() const {
 
 }
 
-/* verifies that the transaction was:
-   1. signed by the holder of the private key associated with origin
-   2. message is the exact same as the sender intended
-*/
-bool Tx::Verify() const {
-  return Sig::ValidateSignature(Serialize() + hash, sig, origin); 
-};
-
-/* this function is used specifically to create a transaction that
-   I, the DaveCoin holder, want to send */
-Tx Tx::ConstructTransaction(std::vector<Tx_Input>& inputs,
-		 	    std::vector<Tx_Output>& outputs,
-			    const DSA::PublicKey& public_key,
-			    const DSA::PrivateKey& private_key) {
-  
-  Tx tx; 
-  SHA256 sha;
-  
-  tx.inputs = inputs;
-  tx.outputs = outputs;
-  tx.origin = public_key;
-  tx.version = 0;
-  tx.timestamp = std::time(0);
-  
-  /* serialize for hash-generation and signature generation */
-  std::string message = tx.Serialize();
-  sha.Update(reinterpret_cast<const byte *>(message.data()), message.size());
-  tx.hash.resize(sha.DigestSize());
-  sha.Final((byte *)&tx.hash[0]);
-
-  /* verify that this transaction is properly signed */
-  tx.sig = Sig::SignMessage(message+tx.hash, public_key, private_key);
-
-  return tx;
-  
-}
-
 /* decodes a serialized transaction into an object and performs verification */
 Tx Tx::Decode(const std::string& serial) {
 
@@ -133,15 +168,99 @@ Tx Tx::Decode(const std::string& serial) {
   tx.origin.BERDecode(key_source);
   cr += keysize;
 
+  /* read input size */
+  input_size = *reinterpret_cast<const uint32_t *>(&sdata[cr]);
+  cr += 4;
+
   /* read inputs */
-  tx.inputs = Tx_Input::Decode(serial.substr(cr), &cr);
+  for (int i = 0; i < input_size; i++) {
+    tx.inputs.push_back(Tx_Input::Decode(serial, &cr));
+  }
+
+  /* read output size */
+  output_size = *reinterpret_cast<const uint32_t *>(&sdata[cr]);
+  cr += 4;
 
   /* read outputs */
-  tx.outputs = Tx_Output::Decode(serial.substr(cr), &cr); 
+  for (int i = 0; i < output_size; i++) {
+    tx.outputs.push_back(Tx_Output::Decode(serial, &cr));
+  }
   
   tx.version = version;
   tx.timestamp = timestamp;
 
+  /* generate transaction hash */
+  CryptoPP::SHA256 sha;
+  sha.Update(reinterpret_cast<const byte *>(serial.data()), serial.size());
+  tx.hash.resize(sha.DigestSize());
+  sha.Final((byte *)&tx.hash[0]);
+  
   return tx;
 
+}
+
+/* decodes a serialized transaction, requiring the public key and signature */
+Tx Tx::DecodeAndVerify(const std::string& serial,
+                       const std::string& signature,
+		       const DSA::PublicKey& key) {
+  
+  Tx tx = Tx::Decode(serial); 
+
+  if (!Sig::ValidateSignature(serial+tx.hash, signature, key)) {
+    throw std::runtime_error("Failed to DecodeAndVerify Tx");
+  }
+
+  tx.sig = signature;
+  return tx;
+
+}
+
+/* verifies that the transaction was:
+   1. signed by the holder of the private key associated with origin
+   2. message is the exact same as the sender intended
+*/
+bool Tx::Verify() const {
+  return Sig::ValidateSignature(Serialize() + hash, sig, origin); 
+};
+
+/* this function is used specifically to create a transaction that
+   I, the DaveCoin holder, want to send */
+Tx Tx::ConstructAndSign(std::vector<Tx_Input>& inputs,
+		 	std::vector<Tx_Output>& outputs,
+			const DSA::PublicKey& public_key,
+			const DSA::PrivateKey& private_key) {
+  
+  Tx tx; 
+  CryptoPP::SHA256 sha;
+  
+  tx.inputs = inputs;
+  tx.outputs = outputs;
+  tx.origin = public_key;
+  tx.version = 0;
+  tx.timestamp = std::time(0);
+
+  /* verify the transaction */
+  if (inputs.size() == 0) {
+    throw std::runtime_error("Transaction requires at least one input");
+  }
+  if (outputs.size() == 0) {
+    throw std::runtime_error("Transaction requires at least one output");
+  }
+  for (const auto& output: tx.outputs) {
+    if (output.target == public_key) {
+      throw std::runtime_error("Transaction can't be to myself");
+    } 
+  }
+
+  /* serialize for hash-generation and signature generation */
+  std::string message = tx.Serialize();
+  sha.Update(reinterpret_cast<const byte *>(message.data()), message.size());
+  tx.hash.resize(sha.DigestSize());
+  sha.Final((byte *)&tx.hash[0]);
+
+  /* verify that this transaction is properly signed */
+  tx.sig = Sig::SignMessage(message+tx.hash, public_key, private_key);
+
+  return tx;
+  
 }

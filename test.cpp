@@ -5,23 +5,37 @@
 
 int main(int argc, char *argv[]) {
    
+  // my keys
   DSA::PublicKey public_key;
   DSA::PrivateKey private_key;
-
   Sig::LoadKey("keys/public_key.key", public_key);
   Sig::LoadKey("keys/private_key.key", private_key);
+
+  // target keys
+  auto [target_public, target_private] = Sig::GenerateKeys();
   
+  // build transaction 
   std::vector<Tx_Input> inputs;
   std::vector<Tx_Output> outputs;  
 
-  inputs.push_back(Tx_Input());
-  outputs.push_back(Tx_Output());
+  Tx_Input input;
+  Tx_Output output;
 
-  Tx t0 = Tx::ConstructTransaction(inputs, outputs, public_key, private_key);
-  Tx t1 = Tx::Decode(t0.Serialize());
+  input.block_hash = "ABCDEFG";
+  input.input_hash = "XYZZZZZ";
+  input.index = 3;
 
-  std::cout << t0.Verify() << std::endl;
-  std::cout << (t0.origin == t1.origin) << std::endl;
+  output.target = public_key;
+  output.index = 3;
+  output.coins = 100;
+
+  inputs.push_back(input);
+  outputs.push_back(output);
+
+  Tx t0 = Tx::ConstructAndSign(inputs, outputs, public_key, private_key);
+  Tx t1 = Tx::DecodeAndVerify(t0.Serialize(), t0.sig, public_key); 
+  
+  std::cout << (t1.outputs[0].target == t0.outputs[0].target) << std::endl;
 
   return 0;
 

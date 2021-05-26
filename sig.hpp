@@ -10,7 +10,7 @@ using namespace CryptoPP;
 
 namespace Sig {
 
-  std::pair<DSA::PublicKey, DSA::PrivateKey> GenerateKeys();
+  std::tuple<DSA::PublicKey, DSA::PrivateKey> GenerateKeys();
 
   std::string SignMessage(const std::string& message, 
 			  const DSA::PublicKey& public_key, 
