@@ -11,6 +11,34 @@ std::string Tx_Output::Serialize() const {
   return "";
 }
 
+Tx_Input Tx_Input::Decode(const std::string& serial, size_t *cr = nullptr) {
+  
+  Tx_Input txi;
+  uint32_t input_size;
+  const char *sdata = serial.c_str();
+  size_t cr_dummy = 0;
+  
+  /* cursor into the string is optional.  use 0 if not passed */
+  if (cr == nullptr) {
+    cr = &cr_dummy;
+  }
+
+  /* read input size */
+  input_size = *reinterpret_cast<const uint32_t *>(&sdata[*cr]);
+  *cr += 4;
+
+  return txi;
+
+}
+
+Tx_Output Tx_Output::Decode(const std::string& serial, size_t *cr = nullptr) {
+
+  Tx_Output txo;
+
+  return txo;
+
+}
+
 std::string Tx::Serialize() const {
   
   std::stringstream s;
@@ -65,6 +93,7 @@ Tx Tx::ConstructTransaction(std::vector<Tx_Input>& inputs,
 			    const DSA::PrivateKey& private_key) {
   
   Tx tx; 
+  SHA256 sha;
   
   tx.inputs = inputs;
   tx.outputs = outputs;
@@ -74,8 +103,6 @@ Tx Tx::ConstructTransaction(std::vector<Tx_Input>& inputs,
   
   /* serialize for hash-generation and signature generation */
   std::string message = tx.Serialize();
-  SHA256 sha;
-
   sha.Update(reinterpret_cast<const byte *>(message.data()), message.size());
   tx.hash.resize(sha.DigestSize());
   sha.Final((byte *)&tx.hash[0]);
@@ -106,11 +133,11 @@ Tx Tx::Decode(const std::string& serial) {
   tx.origin.BERDecode(key_source);
   cr += keysize;
 
-  /* read input size */
-  input_size = *reinterpret_cast<const uint32_t *>(&sdata[cr]);
-  cr += 4;
-  
-  std::cout << "INPUT SIZE " << input_size << std::endl;
+  /* read inputs */
+  tx.inputs = Tx_Input::Decode(serial.substr(cr), &cr);
+
+  /* read outputs */
+  tx.outputs = Tx_Output::Decode(serial.substr(cr), &cr); 
   
   tx.version = version;
   tx.timestamp = timestamp;

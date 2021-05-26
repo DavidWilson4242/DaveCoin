@@ -21,6 +21,8 @@ struct Tx_Input {
 
   std::string Serialize() const;
 
+  static Tx_Input Decode(const std::string& serial, size_t *cr);
+
 };
 
 struct Tx_Output {
@@ -31,6 +33,8 @@ struct Tx_Output {
   uint64_t coins;
 
   std::string Serialize() const;
+
+  static Tx_Input Decode(const std::string& serial, size_t *cr);
 
 };
 
@@ -53,7 +57,7 @@ struct Tx {
   std::string Serialize() const;
   bool Verify() const;
 
-  static Tx Decode(const std::string&);  
+  static Tx Decode(const std::string& serial);  
   static Tx ConstructTransaction(std::vector<Tx_Input>& inputs,
 				 std::vector<Tx_Output>& outputs,
 				 const DSA::PublicKey& public_key,
