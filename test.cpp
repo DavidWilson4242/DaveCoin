@@ -1,10 +1,12 @@
 #include <iostream>
+#include <thread>
 #include <cryptopp/dsa.h>
 #include "blockchain.hpp"
 #include "sig.hpp"
+#include "server.hpp"
+#include "client.hpp"
 
-int main(int argc, char *argv[]) {
-   
+void test_transaction() {
   // my keys (load from file)
   DSA::PublicKey public_key;
   DSA::PrivateKey private_key;
@@ -48,6 +50,27 @@ int main(int argc, char *argv[]) {
   } else {
     std::cout << "failed to decode tx packet\n";
   }
+}
+
+void test_server() {
+  
+  std::thread server_thread(Server::Init);
+  std::thread client_thread(Client::Init);
+
+  server_thread.join();
+  client_thread.join();
+
+}
+
+void test_client() {
+
+}
+
+int main(int argc, char *argv[]) {
+   
+  test_transaction();
+  test_server();
+  test_client();
 
   return 0;
 
