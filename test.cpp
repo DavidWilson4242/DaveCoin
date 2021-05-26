@@ -52,25 +52,28 @@ void test_transaction() {
   }
 }
 
-void test_server() {
+/*
+ *  Each node in the JumboCoin peer-to-peer network is both a server and client 
+ *  at the same time.  The server is used to listen for requests from other 
+ *  nodes, and the client is used to send messages to other nodes.
+ *
+ *  std::thread is needed to run both simultaneously
+ *
+ */
+void test_server_client() {
   
-  std::thread server_thread(Server::Init);
-  std::thread client_thread(Client::Init);
+  std::thread server_thread(NodeServer::Init);
+  std::thread client_thread(NodeClient::Init);
 
   server_thread.join();
   client_thread.join();
 
 }
 
-void test_client() {
-
-}
-
 int main(int argc, char *argv[]) {
    
   test_transaction();
-  test_server();
-  test_client();
+  test_server_client();
 
   return 0;
 

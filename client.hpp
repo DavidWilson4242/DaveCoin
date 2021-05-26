@@ -1,7 +1,7 @@
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
 
-namespace Client {
+namespace NodeClient {
   
   void Init();
 

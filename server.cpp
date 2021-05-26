@@ -6,8 +6,45 @@
 #include <string>
 #include "server.hpp"
 
-void Server::Init() {
+/*
+ * Uses a simple TCP library (see ./tcp)
+ *
+ */
+
+void NodeServer::Init() {
+
+  TcpServer server;
+  server_observer_t observer;
   
-  std::cout << "hello from server\n"; 
+  pipe_ret_t pipe = server.start(NodeServer::PORT);
+  if (!pipe.success) {
+    throw std::runtime_error("Server setup failed.\n");
+  }
+
+  /* configure and register observer
+   * wantedIP="" means we're listening from any IP.
+   */ 
+  observer.incoming_packet_func = NodeServer::ReceiveMessage;
+  observer.disconnected_func = NodeServer::ClientDisconnected;
+  observer.wantedIp = "";
+  server.subscribe(observer);
+  
+  while (true) {
+    Client client = server.acceptClient(0);
+    if (client.isConnected()) {
+      server.printClients();
+    } else {
+      throw std::runtime_error("Server failed to accept clients");
+    }
+    sleep(1);
+  } 
+
+}
+
+void NodeServer::ReceiveMessage(const Client& client, const char *message, size_t size) {
+  
+}
+
+void NodeServer::ClientDisconnected(const Client& client) {
 
 }
