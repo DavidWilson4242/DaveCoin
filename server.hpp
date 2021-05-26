@@ -5,7 +5,7 @@
 
 namespace NodeServer {
   
-  const uint32_t PORT = 97352;
+  const uint32_t PORT = 8080;
   
   void ReceiveMessage(const Client& client, const char *message, size_t size);
   void ClientDisconnected(const Client& client);

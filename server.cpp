@@ -42,7 +42,7 @@ void NodeServer::Init() {
 }
 
 void NodeServer::ReceiveMessage(const Client& client, const char *message, size_t size) {
-  
+  std::cout << "server got message: " << message << std::endl; 
 }
 
 void NodeServer::ClientDisconnected(const Client& client) {
