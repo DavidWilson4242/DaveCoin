@@ -56,7 +56,7 @@ std::string JumboPacket::SerializeHeartbeat() {
 
 std::string JumboPacket::DecodeHeartbeat(const std::string& packet) {
 
-  return "GOOD";
+  return "HEARTBEAT";
 }
 
 std::string JumboPacket::SerializeSimpleString(const std::string& str) {

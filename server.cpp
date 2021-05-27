@@ -22,14 +22,16 @@ void start_heartbeat_loop(TcpServer& server) {
   
   while (true) {
     sleep(NodeServer::KEEP_ALIVE_TIME);
+    
+    for (auto it = connected_clients.cbegin(); it != connected_clients.cend();) {
 
-    for (auto &pair: connected_clients) {
-      const std::string& IP = pair.first;
-      Client& client = pair.second;
+    //for (auto &pair: connected_clients) {
+      const std::string& IP = it->first;
+      const Client& client = it->second;
       
       /* no heartbeat in the time interval? kill connection */ 
       if (client_heartbeats.find(IP) == client_heartbeats.end()) {
-	std::cout << "server: killed connection from client " << IP << std::endl;
+	//std::cout << "server: killed connection from client " << IP << std::endl;
 	connected_clients.erase(IP);
       }
     } 
