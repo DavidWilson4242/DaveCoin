@@ -11,22 +11,19 @@
  *  will use the packet headers to decode the bytes into a meaningful object 
  *  (... or group of objecs, depending on the message).
  *
- *  the packet headers are as follows:
- *
- *  [0, 4)  -> MAGIC_WORD
- *  [4, 6)  -> messageType (CLIENT_POKE_WORD, ...)
- *  [6, 10) -> messageLength (does NOT include MAGIC_WORD ot messageType)
- *  [10, ...] -> messageData
- *
+ *  see docs/jumbopacket.txt for more info about JumboPacket
  */
 
 namespace JumboPacket {
   
-  const uint32_t MAGIC_WORD = 0xFFAABBCC;
+  const uint32_t MAGIC_WORD = 0xFA00AF00;
+
   const uint16_t CLIENT_NULL = 0x0000;
   const uint16_t CLIENT_POKE = 0x0001;
   const uint16_t CLIENT_HEARTBEAT = 0x0002;
-  const uint16_t CLIENT_SIMPLE_STRING = 0x0003;
+  const uint16_t SIMPLE_STRING = 0x0003;
+  const uint16_t FULL_BLOCK = 0x0004;
+  const uint16_t BLOCK_HEADERS = 0x0005;
   
   const int MESSAGE_TYPE_START = 0x04;
   const int DATA_START = 0x06;
@@ -68,7 +65,7 @@ namespace JumboPacket {
   std::string   SerializeHeartbeat();
   DecodedPacket DecodeHeartbeat(const std::string& packet);
 
-  /* mw: CLIENT_SIMPLE_STRING */
+  /* mw: SIMPLE_STRING */
   std::string   SerializeSimpleString(const std::string& str);
   DecodedPacket DecodeSimpleString(const std::string& packet);
 

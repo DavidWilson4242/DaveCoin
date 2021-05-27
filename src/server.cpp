@@ -16,9 +16,14 @@
 
 std::map<std::string, Client> connected_clients;
 std::map<std::string, bool> client_heartbeats;
-  
-/* every 5 seconds, send a message to each client.
- * if unsuccessful, removes client from connected list */
+
+/* every NodeServer::KEEP_ALIVE_TIME, the server must receive a HEARTBEAT
+ * from a client.  if a heartbeat is not received during that interval,
+ * the server will stop broadcasting to that client, and the client
+ * will have to reconnect.
+ *
+ * I couldn't find a working event handler to detect when a client immediately
+ * disconnects, so this is the solution that I'm going with for now. */
 void start_heartbeat_loop(TcpServer& server, 
 			  std::map<std::string, Client>& connected_clients, 
 			  std::map<std::string, bool>& client_heartbeats) {
@@ -46,6 +51,7 @@ void start_heartbeat_loop(TcpServer& server,
 
 }
 
+/* is there a client with IP [IP] listening to me? */
 bool NodeServer::HasClientWithIP(const std::string& IP) {
   for (auto& pair: connected_clients) {
     if (pair.first == IP) {
@@ -100,6 +106,7 @@ void NodeServer::Init() {
 
 }
 
+/* fired when the server receives a message from [client] */
 void NodeServer::ReceiveMessage(const Client& client, const char *message, size_t size) {
   
   JumboPacket::DecodedPacket packd = JumboPacket::DecodePacket(std::string(message, size));
@@ -108,12 +115,14 @@ void NodeServer::ReceiveMessage(const Client& client, const char *message, size_
     client_heartbeats[client.getIp()] = true; 
   } else if (packd.Is(JumboPacket::CLIENT_POKE)) {
     NodeClient::ConnectToServer(client.getIp());
-  } else if (packd.Is(JumboPacket::CLIENT_SIMPLE_STRING)) {
+  } else if (packd.Is(JumboPacket::SIMPLE_STRING)) {
     std::cout << "[server rec'd message]: " << packd.data << std::endl;
   }
 
 }
 
+/* fired when a client disconnects from my server (this always occurs after
+ * the client times out, i.e. they don't send a HEARTBEAT in time */
 void NodeServer::ClientDisconnected(const Client& client) {
   std::cout << "server: killed connection from client " << client.getIp() << std::endl;
 }

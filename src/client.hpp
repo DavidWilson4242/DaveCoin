@@ -9,7 +9,7 @@ namespace NodeClient {
     std::string serverIP;
     TcpClient client;
     client_observer_t observer;
-    std::thread *thread;
+    std::thread *thread; /* todo fix leak */
     bool alive = false;
   };
   
@@ -19,6 +19,10 @@ namespace NodeClient {
   void ConnectToServer(const std::string& IP);
   void ReceiveMessage(const char *message, size_t size);
   void Disconnected(const pipe_ret_t& pipe);
+  void BroadcastTx(std::vector<Tx_Input>& inputs,
+		   std::vector<Tx_Output>& outputs,
+		   const DSA::PublicKey& public_key,
+		   const DSA::PrivateKey& private_key);
 
 };
 

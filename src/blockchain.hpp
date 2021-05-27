@@ -11,17 +11,6 @@
 #include <cryptopp/sha.h>
 #include "tx.hpp"
 
-/* a coin vector is split into units, whole units and millionth units */
-struct CoinVector {
-
-  uint64_t unit;
-  uint64_t subunit;
-
-  CoinVector(uint64_t u, uint64_t su) : unit(u), subunit(su) {}
-  CoinVector() : unit(0), subunit(0) {}
-
-};
-
 struct Mempool {
   
   std::vector<Tx> trans;
@@ -42,6 +31,7 @@ struct Block {
   Tx_Coinbase coinbase;
   
   /* functions */
+  std::string Serialize();
   bool IsSolved();
   void Mine();
   CryptoPP::SHA256 &Hash();

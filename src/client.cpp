@@ -65,7 +65,6 @@ void initialize_client_connection(const std::string& serverIP, NodeClient::NClie
       sleep(ceil((float)NodeServer::KEEP_ALIVE_TIME/3.0));
     }
   };
-
   std::thread heartbeat(keep_alive);
   
   /* when I connect to a server, I give them a *poke* with a message containing
@@ -97,7 +96,7 @@ void NodeClient::ReceiveMessage(const char *message, size_t size) {
   
   JumboPacket::DecodedPacket packd = JumboPacket::DecodePacket(std::string(message, size));
 
-  if (packd.Is(JumboPacket::CLIENT_SIMPLE_STRING)) {
+  if (packd.Is(JumboPacket::SIMPLE_STRING)) {
     std::cout << "[client rec'd message]: " << packd.data << std::endl;
   }
 
@@ -123,6 +122,14 @@ void NodeClient::ConnectToServer(const std::string& IP) {
   /* try to connect */
   NodeClient::NClient *nc = new NodeClient::NClient();
   nc->thread = new std::thread(initialize_client_connection, IP, nc);
+}
+
+void NodeClient::BroadcastTx(std::vector<Tx_Input>& inputs,
+                             std::vector<Tx_Output> outputs,
+			     const DSA::PublicKey& public_key,
+			     const DSA::PrivateKey& private_key) {
+  
+
 }
 
 void NodeClient::Init() {

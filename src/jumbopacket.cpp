@@ -59,6 +59,7 @@ std::string JumboPacket::SerializeHeartbeat() {
 
 }
 
+/* a heartbeat is essentially just an integer code */ 
 DecodedPacket JumboPacket::DecodeHeartbeat(const std::string& packet) {
   
   return DecodedPacket(
@@ -70,7 +71,7 @@ DecodedPacket JumboPacket::DecodeHeartbeat(const std::string& packet) {
 
 std::string JumboPacket::SerializeSimpleString(const std::string& str) {
 
-  Packet packet(JumboPacket::CLIENT_SIMPLE_STRING);
+  Packet packet(JumboPacket::SIMPLE_STRING);
   
   uint32_t size = (uint32_t)str.size();
 
@@ -81,13 +82,14 @@ std::string JumboPacket::SerializeSimpleString(const std::string& str) {
 
 }
 
+/* a simple string can be passed between nodes for debugging */
 DecodedPacket JumboPacket::DecodeSimpleString(const std::string& packet) {
 
   const char *data = packet.c_str();
   uint32_t strLength = *(uint32_t *)&data[JumboPacket::DATA_START];
 
   return DecodedPacket(
-    JumboPacket::CLIENT_SIMPLE_STRING,
+    JumboPacket::SIMPLE_STRING,
     std::string(&data[JumboPacket::DATA_START + 4], strLength)
   );
 
@@ -114,7 +116,7 @@ DecodedPacket JumboPacket::DecodePacket(const std::string& packet) {
       return JumboPacket::DecodeClientPoke(packet);
     case CLIENT_HEARTBEAT:
       return JumboPacket::DecodeHeartbeat(packet);
-    case CLIENT_SIMPLE_STRING:
+    case SIMPLE_STRING:
       return JumboPacket::DecodeSimpleString(packet);
     default:
       throw std::runtime_error("JumboPacket DecodePacket: invalid messageType");

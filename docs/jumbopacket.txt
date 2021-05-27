@@ -1,0 +1,9 @@
+The JumboPacket module is used to send packets back and forth between nodes on
+the JumboCoin peer-to-peer network.
+
+The structure of each message is defined as follows (using byte ranges):
+  [0, 4)    => MAGIC_WORD.  must be 0xFA00AF00
+  [4, 6)    => messageType (see jumbopacket.h)
+  [6, 10)   => messageLength.  The length of the message data, not including
+               MAGIC_WORD, messageType, or messageLength
+  [10, ...] => the remaining data, depending on messageType

@@ -16,6 +16,12 @@ Block::Block() {
 
 }
 
+std::string Block::Serialize() {
+  
+  std::string
+
+}
+
 Blockchain::Blockchain() {
   
   /* initialize the genesis block.  this is always the same */

@@ -1,4 +1,5 @@
-There's no makefile yet, coming later.
+JumboCoin is a hobbyist cryptocurrency that aspires to be a mini version of Bitcoin written from scratch.
 
-For now, compile with:
+
+There's no makefile yet.  For now, compile with:
 g++ -DNDEBUG -g2 -fPIC -pthread -pipe *.cpp tcp/src/*.cpp -o test -std=c++17 -lcryptopp
