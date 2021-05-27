@@ -5,9 +5,11 @@
 
 namespace NodeClient {
 
-  struct NodeClient {
+  struct NClient {
+    std::string serverIP;
     TcpClient client;
     client_observer_t observer;
+    std::thread *thread;
     bool alive = false;
   };
   

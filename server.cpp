@@ -85,8 +85,6 @@ void NodeServer::Init() {
       connected_clients[client.getIp()] = client;
       client_heartbeats[client.getIp()] = true;
       
-      std::string message = JumboPacket::SerializeSimpleString("message from server!");
-      server.sendToAllClients(message.c_str(), message.size());
       sleep(1);
     } 
   };
@@ -110,12 +108,12 @@ void NodeServer::ReceiveMessage(const Client& client, const char *message, size_
     client_heartbeats[client.getIp()] = true; 
   } else if (packd.Is(JumboPacket::CLIENT_POKE)) {
     NodeClient::ConnectToServer(client.getIp());
+  } else if (packd.Is(JumboPacket::CLIENT_SIMPLE_STRING)) {
+    std::cout << "[server rec'd message]: " << packd.data << std::endl;
   }
 
 }
 
 void NodeServer::ClientDisconnected(const Client& client) {
-  
   std::cout << "server: killed connection from client " << client.getIp() << std::endl;
-
 }

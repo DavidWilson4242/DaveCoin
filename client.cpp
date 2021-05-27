@@ -24,13 +24,12 @@
  *
  */
 
-std::vector<std::thread *> client_threads;
+std::vector<NodeClient::NClient *> active_clients;
 
 /* attempts to connect to a server */
-void initialize_client_connection(const std::string& serverIP) {
+void initialize_client_connection(const std::string& serverIP, NodeClient::NClient *nc) {
   
-  NodeClient::NodeClient *nc = new NodeClient::NodeClient;
-
+  nc->serverIP = serverIP;
   nc->observer.wantedIp = "";
   nc->observer.incoming_packet_func = NodeClient::ReceiveMessage;
   nc->observer.disconnected_func = NodeClient::Disconnected;
@@ -44,6 +43,8 @@ void initialize_client_connection(const std::string& serverIP) {
   }
   std::cout << "connected to server " << serverIP << " listed in peers.dat" << std::endl;
 
+  active_clients.push_back(nc);
+
   nc->alive = true;
   
   /*
@@ -55,7 +56,6 @@ void initialize_client_connection(const std::string& serverIP) {
    */
   auto keep_alive = [&]() {
     while (nc->alive) {
-    
       std::string message = JumboPacket::SerializeHeartbeat();
       pipe_ret_t ret = nc->client.sendMsg(message.c_str(), message.size());
       if (!ret.success) {
@@ -63,7 +63,6 @@ void initialize_client_connection(const std::string& serverIP) {
 	break;
       }
       sleep(ceil((float)NodeServer::KEEP_ALIVE_TIME/3.0));
-
     }
   };
 
@@ -79,9 +78,9 @@ void initialize_client_connection(const std::string& serverIP) {
 
   /* send messages to server */
   while (nc->alive) {
-    
-    std::string message = JumboPacket::SerializeSimpleString("hello, server!"); 
-    pipe_ret_t ret = nc->client.sendMsg(message.c_str(), message.size());
+    std::string message = "hello from client " + JumboPacket::GetMyIP();
+    std::string serial = JumboPacket::SerializeSimpleString(message); 
+    pipe_ret_t ret = nc->client.sendMsg(serial.c_str(), serial.size());
     if (!ret.success) {
       std::cout << "failed to send message to server " << serverIP << ".. aborting.\n";
       nc->alive = false;
@@ -99,7 +98,7 @@ void NodeClient::ReceiveMessage(const char *message, size_t size) {
   JumboPacket::DecodedPacket packd = JumboPacket::DecodePacket(std::string(message, size));
 
   if (packd.Is(JumboPacket::CLIENT_SIMPLE_STRING)) {
-    std::cout << "client got message: " << packd.data << std::endl;
+    std::cout << "[client rec'd message]: " << packd.data << std::endl;
   }
 
 }
@@ -114,8 +113,16 @@ void NodeClient::ConnectToServer(const std::string& IP) {
     return;
   } 
 
-  std::thread *client_thread = new std::thread(initialize_client_connection, IP);
-  client_threads.push_back(client_thread);
+  /* don't connect a second time */
+  for (const auto ec: active_clients) {
+    if (ec->serverIP == IP) {
+      return;
+    }
+  }
+
+  /* try to connect */
+  NodeClient::NClient *nc = new NodeClient::NClient();
+  nc->thread = new std::thread(initialize_client_connection, IP, nc);
 }
 
 void NodeClient::Init() {
@@ -137,10 +144,11 @@ void NodeClient::Init() {
   peers.close();
 
   /* main client loop */
-  while (client_threads.size() > 0) {
-    client_threads[0]->join(); 
-    delete client_threads[0];
-    client_threads.erase(client_threads.begin());
+  while (active_clients.size() > 0) {
+    active_clients[0]->thread->join(); 
+    delete active_clients[0]->thread;
+    delete active_clients[0];
+    active_clients.erase(active_clients.begin());
 
   }
 
