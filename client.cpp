@@ -56,7 +56,7 @@ static std::string getMyIP() {
 }
 
 void NodeClient::ReceiveMessage(const char *message, size_t size) {
-
+  std::cout << "client got message: " << message << std::endl;
 }
 
 void NodeClient::Disconnected(const pipe_ret_t& pipe) {

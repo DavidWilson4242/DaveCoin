@@ -36,6 +36,9 @@ void NodeServer::Init() {
     } else {
       throw std::runtime_error("Server failed to accept clients");
     }
+    
+    std::string message = "Hello from server.";
+    server.sendToAllClients(message.c_str(), message.size());
     sleep(1);
   } 
 
