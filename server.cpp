@@ -6,6 +6,7 @@
 #include <string>
 #include <map>
 #include "server.hpp"
+#include "client.hpp"
 #include "jumbopacket.hpp"
 
 /*
@@ -107,6 +108,8 @@ void NodeServer::ReceiveMessage(const Client& client, const char *message, size_
   
   if (packd.Is(JumboPacket::CLIENT_HEARTBEAT)) {
     client_heartbeats[client.getIp()] = true; 
+  } else if (packd.Is(JumboPacket::CLIENT_POKE)) {
+    NodeClient::ConnectToServer(client.getIp());
   }
 
 }

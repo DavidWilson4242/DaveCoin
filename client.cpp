@@ -109,13 +109,13 @@ void NodeClient::Disconnected(const pipe_ret_t& pipe) {
 }
 
 void NodeClient::ConnectToServer(const std::string& IP) {
-    /* don't try to connect to myself... */
-    if (JumboPacket::GetMyIP() == IP) {
-      return;
-    } 
+  /* don't try to connect to myself... */
+  if (JumboPacket::GetMyIP() == IP) {
+    return;
+  } 
 
-    std::thread *client_thread = new std::thread(initialize_client_connection, IP);
-    client_threads.push_back(client_thread);
+  std::thread *client_thread = new std::thread(initialize_client_connection, IP);
+  client_threads.push_back(client_thread);
 }
 
 void NodeClient::Init() {
@@ -132,9 +132,7 @@ void NodeClient::Init() {
   
   std::string IP;
   while (std::getline(peers, IP)) {
-
     ConnectToServer(IP);
-
   } 
   peers.close();
 
