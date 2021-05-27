@@ -14,21 +14,29 @@
  */
 
 std::map<std::string, Client> connected_clients;
+std::map<std::string, bool> client_heartbeats;
   
 /* every 5 seconds, send a message to each client.
  * if unsuccessful, removes client from connected list */
 void start_heartbeat_loop(TcpServer& server) {
+  
+  while (true) {
+    sleep(NodeServer::KEEP_ALIVE_TIME);
 
-  for (auto &pair: connected_clients) {
-    const std::string& IP = pair.first;
-    Client& client = pair.second;
+    for (auto &pair: connected_clients) {
+      const std::string& IP = pair.first;
+      Client& client = pair.second;
+      
+      /* no heartbeat in the time interval? kill connection */ 
+      if (client_heartbeats.find(IP) == client_heartbeats.end()) {
+	std::cout << "server: killed connection from client " << IP << std::endl;
+	connected_clients.erase(IP);
+      }
+    } 
 
-    auto pipe_ret = server.sendToClient(client, "1", 1);
-    if (!pipe_ret.success) {
-      std::cout << "lost client " << client.getIp() << std::endl;
-      connected_clients.erase(IP);
-    }
-  } 
+    client_heartbeats.clear();
+
+  }
 
 }
 
@@ -74,8 +82,10 @@ void NodeServer::Init() {
 void NodeServer::ReceiveMessage(const Client& client, const char *message, size_t size) {
   
   std::string decodedMessage = JumboPacket::DecodePacket(std::string(message, size));
-
-  std::cout << "server got message: " << decodedMessage << std::endl;
+  
+  if (decodedMessage == "HEARTBEAT") {
+    client_heartbeats[client.getIp()] = true; 
+  }
 
 }
 
