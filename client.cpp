@@ -26,7 +26,7 @@ void NodeClient::Init() {
 
   /* send messages to server */
   while (true) {
-    std::string message = "hello, server!";
+    std::string message = "what's up fucker";
     pipe_ret_t ret = client.sendMsg(message.c_str(), message.size());
     if (!ret.success) {
       throw std::runtime_error("Client failed to send message.");
