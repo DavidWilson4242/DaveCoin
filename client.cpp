@@ -5,6 +5,20 @@
 #include <arpa/inet.h>
 #include "client.hpp"
 
+/*
+ * peers.dat is a list of IP addresses of nodes in the network.
+ * when a node goes online, it broadcasts to each IP on this list
+ * to make its prescence known.  the nodes that we reached out to
+ * will also connect to OUR server
+ *
+ * remember: each node is both a client AND server, as this is
+ * a peer-to-peer network.  when we go online, it's our job
+ * to reach out to the other nodes and connect to their
+ * servers.  it's their job to reach back out to us
+ * and connect to our server.
+ *
+ */
+
 /* gets the ip address of my local computer
  * used to ensure that we don't try to connect
  * to our own server. */
@@ -16,7 +30,7 @@ static std::string getMyIP() {
     throw std::runtime_error("getMyIp: could not socket");
   }
 
-  std::memset(&loopback, 0, sizeof(loopback));
+  memset(&loopback, 0, sizeof(loopback));
   loopback.sin_family = AF_INET;
   loopback.sin_addr.s_addr = 1337;   // can be any IP address
   loopback.sin_port = htons(9);      // using debug port
@@ -51,7 +65,7 @@ void NodeClient::Disconnected(const pipe_ret_t& pipe) {
 
 void NodeClient::Init() {
 
-  getMyIP();
+  std::string myIP = getMyIP();
 
   TcpClient client;
   
