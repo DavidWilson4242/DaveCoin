@@ -8,6 +8,7 @@ namespace NodeServer {
   const uint32_t PORT = 8080;
   const uint32_t KEEP_ALIVE_TIME = 10;
   
+  bool HasClientWithIP(const std::string& IP); 
   void ReceiveMessage(const Client& client, const char *message, size_t size);
   void ClientDisconnected(const Client& client);
   void Init();

@@ -8,7 +8,9 @@
 #include <fstream>
 #include "jumbopacket.hpp"
 
-std::string JumboPacket::Packet::Serialize() {
+using namespace JumboPacket;
+
+std::string Packet::Serialize() {
   return data.str();
 }
 
@@ -16,7 +18,8 @@ std::string JumboPacket::Packet::Serialize() {
  * let A_C, A_S represent node A's client and server respectively
  * let B_C, B_S represent node B's client and server respectively
  *
- * say that node A joins the network.  A_C will try to connect to
+ * say that node A joins the network, B is already on the network.  
+ * A_C will try to connect to
  * B_S if the IP address of B_S is listed in peers.dat.  once connected,
  * A_C will send the IP address of A_S to B_S, and B_C will connect
  * to A_S.
@@ -25,7 +28,7 @@ std::string JumboPacket::Packet::Serialize() {
  * client will connect to your server */ 
 std::string JumboPacket::SerializeClientPoke(const std::string& IP) {
   
-  JumboPacket::Packet packet(JumboPacket::CLIENT_POKE);
+  Packet packet(JumboPacket::CLIENT_POKE);
   uint32_t size = (uint32_t)IP.size();
 
   packet.data.write(reinterpret_cast<const char *>(&size), sizeof(uint32_t)); 
@@ -36,32 +39,38 @@ std::string JumboPacket::SerializeClientPoke(const std::string& IP) {
 }
 
 /* extracts an IP address from ClientPoke message */
-std::string JumboPacket::DecodeClientPoke(const std::string& packet) {
+DecodedPacket JumboPacket::DecodeClientPoke(const std::string& packet) {
   
   const char *data = packet.c_str();
-
   uint32_t ipLength = *(uint32_t *)&data[JumboPacket::DATA_START];
 
-  return std::string(&data[JumboPacket::DATA_START + 4], ipLength);
+  return DecodedPacket(
+    JumboPacket::CLIENT_POKE,
+    std::string(&data[JumboPacket::DATA_START + 4], ipLength)
+  );
 
 }
 
 std::string JumboPacket::SerializeHeartbeat() {
   
-  JumboPacket::Packet packet(JumboPacket::CLIENT_HEARTBEAT);
+  Packet packet(JumboPacket::CLIENT_HEARTBEAT);
 
   return packet.Serialize();
 
 }
 
-std::string JumboPacket::DecodeHeartbeat(const std::string& packet) {
-
-  return "HEARTBEAT";
+DecodedPacket JumboPacket::DecodeHeartbeat(const std::string& packet) {
+  
+  return DecodedPacket(
+    JumboPacket::CLIENT_HEARTBEAT,
+    "HEARTBEAT"
+  );
+    
 }
 
 std::string JumboPacket::SerializeSimpleString(const std::string& str) {
 
-  JumboPacket::Packet packet(JumboPacket::CLIENT_SIMPLE_STRING);
+  Packet packet(JumboPacket::CLIENT_SIMPLE_STRING);
   
   uint32_t size = (uint32_t)str.size();
 
@@ -72,17 +81,19 @@ std::string JumboPacket::SerializeSimpleString(const std::string& str) {
 
 }
 
-std::string JumboPacket::DecodeSimpleString(const std::string& packet) {
+DecodedPacket JumboPacket::DecodeSimpleString(const std::string& packet) {
 
   const char *data = packet.c_str();
-
   uint32_t strLength = *(uint32_t *)&data[JumboPacket::DATA_START];
 
-  return std::string(&data[JumboPacket::DATA_START + 4], strLength);
+  return DecodedPacket(
+    JumboPacket::CLIENT_SIMPLE_STRING,
+    std::string(&data[JumboPacket::DATA_START + 4], strLength)
+  );
 
 }
 
-std::string JumboPacket::DecodePacket(const std::string& packet) {
+DecodedPacket JumboPacket::DecodePacket(const std::string& packet) {
   
   const char *data = packet.c_str();
 
@@ -109,7 +120,7 @@ std::string JumboPacket::DecodePacket(const std::string& packet) {
       throw std::runtime_error("JumboPacket DecodePacket: invalid messageType");
   };
 
-  return "";
+  return DecodedPacket(JumboPacket::CLIENT_NULL, "");
 
 }
 

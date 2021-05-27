@@ -14,6 +14,7 @@ namespace NodeClient {
   const uint32_t PORT = 8080;
 
   void Init();
+  void ConnectToServer(const std::string& IP);
   void ReceiveMessage(const char *message, size_t size);
   void Disconnected(const pipe_ret_t& pipe);
 

@@ -21,6 +21,13 @@ void TcpServer::printClients() {
     }
 }
 
+void TcpServer::killClient(Client& client) {
+  client.setDisconnected();
+  close(client.getFileDescriptor());
+  publishClientDisconnected(client);
+  deleteClient(client);
+}
+
 /*
  * Receive client packets, and notify user
  */

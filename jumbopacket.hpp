@@ -23,6 +23,7 @@
 namespace JumboPacket {
   
   const uint32_t MAGIC_WORD = 0xFFAABBCC;
+  const uint16_t CLIENT_NULL = 0x0000;
   const uint16_t CLIENT_POKE = 0x0001;
   const uint16_t CLIENT_HEARTBEAT = 0x0002;
   const uint16_t CLIENT_SIMPLE_STRING = 0x0003;
@@ -31,7 +32,6 @@ namespace JumboPacket {
   const int DATA_START = 0x06;
   
   struct Packet {
-    
 
     std::stringstream data;
     uint16_t messageType;
@@ -45,21 +45,32 @@ namespace JumboPacket {
 
   };
 
+  struct DecodedPacket {
+    
+    uint16_t messageType;
+    std::string data;
+
+    bool Is(uint16_t _m) { return _m == messageType; }
+
+    DecodedPacket(uint16_t _m, const std::string& _d) : messageType(_m), data(_d) {}
+
+  };
+
   std::string GetMyIP();
 
-  std::string DecodePacket(const std::string& packet);
+  DecodedPacket DecodePacket(const std::string& packet);
   
   /* mw: CLIENT_POKE_WORD */ 
-  std::string SerializeClientPoke(const std::string& IP);
-  std::string DecodeClientPoke(const std::string& packet);
+  std::string   SerializeClientPoke(const std::string& IP);
+  DecodedPacket DecodeClientPoke(const std::string& packet);
 
   /* mw: CLIENT_HEART_BEAT_WORD */
-  std::string SerializeHeartbeat();
-  std::string DecodeHeartbeat(const std::string& packet);
+  std::string   SerializeHeartbeat();
+  DecodedPacket DecodeHeartbeat(const std::string& packet);
 
   /* mw: CLIENT_SIMPLE_STRING */
-  std::string SerializeSimpleString(const std::string& str);
-  std::string DecodeSimpleString(const std::string& packet);
+  std::string   SerializeSimpleString(const std::string& str);
+  DecodedPacket DecodeSimpleString(const std::string& packet);
 
 };
 

@@ -18,28 +18,40 @@ std::map<std::string, bool> client_heartbeats;
   
 /* every 5 seconds, send a message to each client.
  * if unsuccessful, removes client from connected list */
-void start_heartbeat_loop(TcpServer& server) {
+void start_heartbeat_loop(TcpServer& server, 
+			  std::map<std::string, Client>& connected_clients, 
+			  std::map<std::string, bool>& client_heartbeats) {
   
   while (true) {
-    sleep(NodeServer::KEEP_ALIVE_TIME);
-    
-    for (auto it = connected_clients.cbegin(); it != connected_clients.cend();) {
-
-    //for (auto &pair: connected_clients) {
+   
+    for (auto i = connected_clients.begin(), e = connected_clients.end(); i != e;) {
+      
+      auto it = i++;
       const std::string& IP = it->first;
-      const Client& client = it->second;
+      Client& client = it->second;
       
       /* no heartbeat in the time interval? kill connection */ 
       if (client_heartbeats.find(IP) == client_heartbeats.end()) {
-	//std::cout << "server: killed connection from client " << IP << std::endl;
+	NodeServer::ClientDisconnected(client);
+	server.killClient(client);
 	connected_clients.erase(IP);
       }
     } 
 
     client_heartbeats.clear();
+    sleep(NodeServer::KEEP_ALIVE_TIME);
 
   }
 
+}
+
+bool NodeServer::HasClientWithIP(const std::string& IP) {
+  for (auto& pair: connected_clients) {
+    if (pair.first == IP) {
+      return true;
+    }
+  }
+  return false;
 }
 
 void NodeServer::Init() {
@@ -60,32 +72,40 @@ void NodeServer::Init() {
   observer.wantedIp = "";
   server.subscribe(observer);
 
-  std::thread heartbeatLoop(start_heartbeat_loop, std::ref(server));
-  
-  while (true) {
-    Client client = server.acceptClient(0);
-    if (client.isConnected()) {
-      std::cout << "new client connected with ip " << client.getIp() << std::endl;
-    } else {
-      throw std::runtime_error("Server failed to accept clients");
-    }
+  auto start_client_loop = [&]() {
+    while (true) {
+      Client client = server.acceptClient(0);
+      if (client.isConnected()) {
+	std::cout << "new client connected with ip " << client.getIp() << std::endl;
+      } else {
+	throw std::runtime_error("Server failed to accept clients");
+      }
 
-    connected_clients[client.getIp()] = client;
-    
-    std::string message = JumboPacket::SerializeSimpleString("message from server!");
-    server.sendToAllClients(message.c_str(), message.size());
-    sleep(1);
-  } 
+      connected_clients[client.getIp()] = client;
+      client_heartbeats[client.getIp()] = true;
+      
+      std::string message = JumboPacket::SerializeSimpleString("message from server!");
+      server.sendToAllClients(message.c_str(), message.size());
+      sleep(1);
+    } 
+  };
+
+  std::thread heartbeatLoop(start_heartbeat_loop, 
+			    std::ref(server),
+			    std::ref(connected_clients),
+			    std::ref(client_heartbeats));
+  std::thread clientLoop(start_client_loop);
 
   heartbeatLoop.join();
+  clientLoop.join();
 
 }
 
 void NodeServer::ReceiveMessage(const Client& client, const char *message, size_t size) {
   
-  std::string decodedMessage = JumboPacket::DecodePacket(std::string(message, size));
+  JumboPacket::DecodedPacket packd = JumboPacket::DecodePacket(std::string(message, size));
   
-  if (decodedMessage == "HEARTBEAT") {
+  if (packd.Is(JumboPacket::CLIENT_HEARTBEAT)) {
     client_heartbeats[client.getIp()] = true; 
   }
 
@@ -93,7 +113,6 @@ void NodeServer::ReceiveMessage(const Client& client, const char *message, size_
 
 void NodeServer::ClientDisconnected(const Client& client) {
   
-  std::cout << "poopermanz\n";
-  connected_clients.erase(client.getIp());
+  std::cout << "server: killed connection from client " << client.getIp() << std::endl;
 
 }
