@@ -24,7 +24,7 @@ namespace Sig {
   void LoadKey(const std::string& filename, T& key);
 
   template <typename T>
-  void SaveKey(const std::string& filename, const DSA::PublicKey& key);
+  void SaveKey(const std::string& filename, T& key);
 
 };
 
