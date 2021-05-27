@@ -32,7 +32,7 @@ void onIncomingMsg(const char * msg, size_t size) {
 void onDisconnection(const pipe_ret_t & ret) {
 	std::cout << "Server disconnected: " << ret.msg << std::endl;
 	std::cout << "Closing client..." << std::endl;
-    pipe_ret_t finishRet = client.finish();
+	pipe_ret_t finishRet = client.finish();
 	if (finishRet.success) {
 		std::cout << "Client closed." << std::endl;
 	} else {
@@ -53,7 +53,7 @@ int main() {
 	client.subscribe(observer);
 
 	// connect client to an open server
-    pipe_ret_t connectRet = client.connectTo("127.0.0.1", 65123);
+	pipe_ret_t connectRet = client.connectTo("127.0.0.1", 65123);
 	if (connectRet.success) {
 		std::cout << "Client connected successfully" << std::endl;
 	} else {
