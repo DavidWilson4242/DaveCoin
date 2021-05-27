@@ -3,6 +3,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <fstream>
 #include "client.hpp"
 
 /*
@@ -18,6 +19,34 @@
  * and connect to our server.
  *
  */
+
+/* attempts to connect to a server */
+void initialize_client_connection(const std::string& serverIP) {
+
+  TcpClient client;
+  
+  client_observer_t observer;
+  observer.wantedIp = "";
+  observer.incoming_packet_func = NodeClient::ReceiveMessage;
+  observer.disconnected_func = NodeClient::Disconnected;
+  client.subscribe(observer);
+
+  pipe_ret_t connection = client.connectTo(serverIP, NodeClient::PORT);
+  if (!connection.success) {
+    std::cerr << "couldn't connect to server " << serverIP << " listed in peers.dat" << std::endl;
+    return;
+  }
+
+  /* send messages to server */
+  while (true) {
+    std::string message = "what's up bro";
+    pipe_ret_t ret = client.sendMsg(message.c_str(), message.size());
+    if (!ret.success) {
+      throw std::runtime_error("Client failed to send message.");
+    }
+    sleep(1);
+  }
+}
 
 /* gets the ip address of my local computer
  * used to ensure that we don't try to connect
@@ -66,27 +95,36 @@ void NodeClient::Disconnected(const pipe_ret_t& pipe) {
 void NodeClient::Init() {
 
   std::string myIP = getMyIP();
-
-  TcpClient client;
   
-  client_observer_t observer;
-  observer.wantedIp = "127.0.0.1";
-  observer.incoming_packet_func = NodeClient::ReceiveMessage;
-  observer.disconnected_func = NodeClient::Disconnected;
-  client.subscribe(observer);
+  /* peers.dat contains a list of IP addresses of other nodes.
+   * when our node goes online, we attempt to connect to each
+   * of these nodes */ 
+  std::ifstream peers;
+  
+  peers.open("peers.dat", std::ios::in);
+  if (!peers.is_open()) {
+    throw std::runtime_error("NodeClient: failed to open peers.dat");
+  }
+  
+  std::string IP;
+  std::vector<std::thread *> client_threads;
+  while (std::getline(peers, IP)) {
 
-  pipe_ret_t connection = client.connectTo("127.0.0.1", NodeClient::PORT);
-  if (!connection.success) {
-    throw std::runtime_error("Client failed to connect.");
+    /* don't try to connect to myself... */
+    if (myIP == IP) {
+      continue;
+    } 
+    
+    std::thread *client_thread = new std::thread(initialize_client_connection, IP);
+    client_threads.push_back(client_thread);
+
   } 
 
-  /* send messages to server */
-  while (true) {
-    std::string message = "what's up fucker";
-    pipe_ret_t ret = client.sendMsg(message.c_str(), message.size());
-    if (!ret.success) {
-      throw std::runtime_error("Client failed to send message.");
-    }
-    sleep(1);
-  }
+  /* wait for all threads to complete */
+  for (const auto thread: client_threads) {
+    thread->join();
+    delete thread;
+  } 
+
+  peers.close();
 }

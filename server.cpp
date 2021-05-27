@@ -32,7 +32,7 @@ void NodeServer::Init() {
   while (true) {
     Client client = server.acceptClient(0);
     if (client.isConnected()) {
-      server.printClients();
+      std::cout << "new client connected with ip " << client.getIp() << std::endl;
     } else {
       throw std::runtime_error("Server failed to accept clients");
     }
