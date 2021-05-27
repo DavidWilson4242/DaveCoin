@@ -125,7 +125,7 @@ void NodeClient::ConnectToServer(const std::string& IP) {
 }
 
 void NodeClient::BroadcastTx(std::vector<Tx_Input>& inputs,
-                             std::vector<Tx_Output> outputs,
+                             std::vector<Tx_Output>& outputs,
 			     const DSA::PublicKey& public_key,
 			     const DSA::PrivateKey& private_key) {
   
@@ -139,7 +139,7 @@ void NodeClient::Init() {
    * of these nodes */ 
   std::ifstream peers;
   
-  peers.open("peers.dat", std::ios::in);
+  peers.open("dat/peers.dat", std::ios::in);
   if (!peers.is_open()) {
     throw std::runtime_error("NodeClient: failed to open peers.dat");
   }

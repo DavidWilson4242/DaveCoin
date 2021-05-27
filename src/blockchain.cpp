@@ -18,7 +18,7 @@ Block::Block() {
 
 std::string Block::Serialize() {
   
-  std::string
+  return std::string();
 
 }
 

@@ -1,7 +1,11 @@
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
 
-#include "tcp/include/tcp_client.h"
+#include <string>
+#include <vector>
+#include <cryptopp/dsa.h>
+#include "../tcp/include/tcp_client.h"
+#include "tx.hpp"
 
 namespace NodeClient {
 

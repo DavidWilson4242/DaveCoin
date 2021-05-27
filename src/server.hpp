@@ -1,7 +1,7 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
-#include "tcp/include/tcp_server.h"
+#include "../tcp/include/tcp_server.h"
 
 namespace NodeServer {
   
