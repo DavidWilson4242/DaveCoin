@@ -4,12 +4,33 @@
 #include <iostream>
 #include <unistd.h>
 #include <string>
+#include <map>
 #include "server.hpp"
+#include "jumbopacket.hpp"
 
 /*
  * Uses a simple TCP library (see ./tcp)
  *
  */
+
+std::map<std::string, Client> connected_clients;
+  
+/* every 5 seconds, send a message to each client.
+ * if unsuccessful, removes client from connected list */
+void start_heartbeat_loop(TcpServer& server) {
+
+  for (auto &pair: connected_clients) {
+    const std::string& IP = pair.first;
+    Client& client = pair.second;
+
+    auto pipe_ret = server.sendToClient(client, "1", 1);
+    if (!pipe_ret.success) {
+      std::cout << "lost client " << client.getIp() << std::endl;
+      connected_clients.erase(IP);
+    }
+  } 
+
+}
 
 void NodeServer::Init() {
 
@@ -28,6 +49,8 @@ void NodeServer::Init() {
   observer.disconnected_func = NodeServer::ClientDisconnected;
   observer.wantedIp = "";
   server.subscribe(observer);
+
+  std::thread heartbeatLoop(start_heartbeat_loop, std::ref(server));
   
   while (true) {
     Client client = server.acceptClient(0);
@@ -36,18 +59,29 @@ void NodeServer::Init() {
     } else {
       throw std::runtime_error("Server failed to accept clients");
     }
+
+    connected_clients[client.getIp()] = client;
     
-    std::string message = "Hello from server.";
+    std::string message = JumboPacket::SerializeSimpleString("message from server!");
     server.sendToAllClients(message.c_str(), message.size());
     sleep(1);
   } 
 
+  heartbeatLoop.join();
+
 }
 
 void NodeServer::ReceiveMessage(const Client& client, const char *message, size_t size) {
-  std::cout << "server got message: " << message << std::endl; 
+  
+  std::string decodedMessage = JumboPacket::DecodePacket(std::string(message, size));
+
+  std::cout << "server got message: " << decodedMessage << std::endl;
+
 }
 
 void NodeServer::ClientDisconnected(const Client& client) {
+  
+  std::cout << "poopermanz\n";
+  connected_clients.erase(client.getIp());
 
 }

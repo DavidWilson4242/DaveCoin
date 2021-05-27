@@ -4,6 +4,12 @@
 #include "tcp/include/tcp_client.h"
 
 namespace NodeClient {
+
+  struct NodeClient {
+    TcpClient client;
+    client_observer_t observer;
+    bool alive = false;
+  };
   
   const uint32_t PORT = 8080;
 

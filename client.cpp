@@ -4,7 +4,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fstream>
+#include <map>
 #include "client.hpp"
+#include "jumbopacket.hpp"
 
 /*
  * peers.dat is a list of IP addresses of nodes in the network.
@@ -20,82 +22,87 @@
  *
  */
 
+/* map of servers that I'm connected to
+ * key is the IP address of the server */
+std::map<std::string, NodeClient::NodeClient *> connected_servers;
+
 /* attempts to connect to a server */
 void initialize_client_connection(const std::string& serverIP) {
-
-  TcpClient client;
   
-  client_observer_t observer;
-  observer.wantedIp = "";
-  observer.incoming_packet_func = NodeClient::ReceiveMessage;
-  observer.disconnected_func = NodeClient::Disconnected;
-  client.subscribe(observer);
+  NodeClient::NodeClient *nc = new NodeClient::NodeClient;
 
-  pipe_ret_t connection = client.connectTo(serverIP, NodeClient::PORT);
+  nc->observer.wantedIp = "";
+  nc->observer.incoming_packet_func = NodeClient::ReceiveMessage;
+  nc->observer.disconnected_func = NodeClient::Disconnected;
+  nc->client.subscribe(nc->observer);
+
+  pipe_ret_t connection = nc->client.connectTo(serverIP, NodeClient::PORT);
   if (!connection.success) {
     std::cerr << "couldn't connect to server " << serverIP << " listed in peers.dat" << std::endl;
+    delete nc;
     return;
   }
+  std::cout << "connected to server " << serverIP << " listed in peers.dat" << std::endl;
+
+  /* log in the connections hashtable */
+  connected_servers[serverIP] = nc;
+  
+  nc->alive = true;
+  
+  /*
+   * a server must receive a heartbeat message from each client every
+   * KEEP_ALIVE_TIME (see server.h).  If it does not, it will stop
+   * listening to that client until it reconnects.  to be safe, we
+   * will send a heartbeat every floor(KEEP_ALIVE_TIME/2) seconds.
+   *  
+   */
+  auto keep_alive = [&]() {
+    while (nc->alive) {
+    
+      std::string message = JumboPacket::SerializeHeartbeat();
+      pipe_ret_t ret = nc->client.sendMsg(message.c_str(), message.size());
+      if (!ret.success) {
+	nc->alive = false;
+	break;
+      }
+      sleep(1);
+
+    }
+  };
+
+  std::thread heartbeat(keep_alive);
 
   /* send messages to server */
-  while (true) {
-    std::string message = "what's up bro";
-    pipe_ret_t ret = client.sendMsg(message.c_str(), message.size());
+  while (nc->alive) {
+    
+    std::string message = JumboPacket::SerializeSimpleString("hello, server!"); 
+    pipe_ret_t ret = nc->client.sendMsg(message.c_str(), message.size());
     if (!ret.success) {
       std::cout << "failed to send message to server " << serverIP << ".. aborting.\n";
+      nc->alive = false;
       break;
     }
     sleep(1);
   }
+
+  heartbeat.join();
 }
 
-/* gets the ip address of my local computer
- * used to ensure that we don't try to connect
- * to our own server. */
-static std::string getMyIP() {
-  int sock = socket(PF_INET, SOCK_DGRAM, 0);
-  sockaddr_in loopback;
-
-  if (sock == -1) {
-    throw std::runtime_error("getMyIp: could not socket");
-  }
-
-  memset(&loopback, 0, sizeof(loopback));
-  loopback.sin_family = AF_INET;
-  loopback.sin_addr.s_addr = 1337;   // can be any IP address
-  loopback.sin_port = htons(9);      // using debug port
-
-  if (connect(sock, reinterpret_cast<sockaddr*>(&loopback), sizeof(loopback)) == -1) {
-    close(sock);
-    throw std::runtime_error("getMyIp: could not connect");
-  }
-
-  socklen_t addrlen = sizeof(loopback);
-  if (getsockname(sock, reinterpret_cast<sockaddr*>(&loopback), &addrlen) == -1) {
-    close(sock);
-    throw std::runtime_error("getMyIp: could not getsockname");
-  }
-
-  close(sock);
-
-  char buf[INET_ADDRSTRLEN];
-  if (inet_ntop(AF_INET, &loopback.sin_addr, buf, INET_ADDRSTRLEN) == 0x0) {
-    std::cerr << "Could not inet_ntop\n";
-  }
-  return std::string(buf);
-}
 
 void NodeClient::ReceiveMessage(const char *message, size_t size) {
-  std::cout << "client got message: " << message << std::endl;
+  
+  std::string decodedMessage = JumboPacket::DecodePacket(std::string(message, size));
+
+  std::cout << "client got message: " << decodedMessage << std::endl;
 }
 
 void NodeClient::Disconnected(const pipe_ret_t& pipe) {
-
+  std::cout << "disconnected\n";
 }
 
 void NodeClient::Init() {
 
-  std::string myIP = getMyIP();
+  std::string myIP = JumboPacket::GetMyIP();
   
   /* peers.dat contains a list of IP addresses of other nodes.
    * when our node goes online, we attempt to connect to each
@@ -113,9 +120,10 @@ void NodeClient::Init() {
 
     /* don't try to connect to myself... */
     if (myIP == IP) {
+      std::cout << "tried to connect to myself\n";
       continue;
     } 
-    
+
     std::thread *client_thread = new std::thread(initialize_client_connection, IP);
     client_threads.push_back(client_thread);
 
