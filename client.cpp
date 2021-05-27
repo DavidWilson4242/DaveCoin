@@ -42,7 +42,8 @@ void initialize_client_connection(const std::string& serverIP) {
     std::string message = "what's up bro";
     pipe_ret_t ret = client.sendMsg(message.c_str(), message.size());
     if (!ret.success) {
-      throw std::runtime_error("Client failed to send message.");
+      std::cout << "failed to send message to server " << serverIP << ".. aborting.\n";
+      break;
     }
     sleep(1);
   }
