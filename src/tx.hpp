@@ -61,6 +61,7 @@ struct Tx_Output {
 struct Tx_Coinbase {
 
   uint64_t coins;
+  DSA::PublicKey target;
 
 };
 
@@ -77,10 +78,10 @@ struct Tx {
   std::string Serialize() const;
   bool Verify() const;
   
+  static Tx Decode(const std::string& serial, size_t *cr);  
   static Tx DecodeAndVerify(const std::string& serial, 
 			    const std::string& sig, 
 			    const DSA::PublicKey& key);
-  static Tx Decode(const std::string& serial);  
   static Tx ConstructAndSign(std::vector<Tx_Input>& inputs,
 			     std::vector<Tx_Output>& outputs,
 			     const DSA::PublicKey& public_key,

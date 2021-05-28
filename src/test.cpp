@@ -6,7 +6,25 @@
 #include "server.hpp"
 #include "client.hpp"
 
-void test_transaction() {
+/* tests building a block, serilizing and decoding */
+void test_block(DSA::PublicKey& miner, Tx& tx) {
+  
+  Block b0;
+  b0.tx.push_back(tx);
+  b0.hash = "0";
+  b0.prev_hash = "0";
+  b0.coinbase.target = miner;
+  b0.coinbase.coins = 100;
+  
+  /* ensure that serialization works properly */
+  Block b1 = Block::DecodeBlock(b0.Serialize());
+  if (b0.Serialize() == b1.Serialize()) {
+    std::cout << "successfully encoded/decoded block\n";
+  }
+
+}
+
+void test_transactions() {
   // my keys (load from file)
   DSA::PublicKey public_key;
   DSA::PrivateKey private_key;
@@ -16,7 +34,7 @@ void test_transaction() {
   // target keys, the address we're sending a transaction to
   auto [target_public, target_private] = Sig::GenerateKeys();
   
-  // build transaction 
+  // build.txaction 
   std::vector<Tx_Input> inputs;
   std::vector<Tx_Output> outputs;  
 
@@ -28,7 +46,7 @@ void test_transaction() {
   input.input_hash = "XYZZZZZ";
   input.index = 3;
 
-  // transaction target
+  //.txaction target
   output.target = target_public;
   output.index = 3;
   output.coins = 100;
@@ -36,11 +54,11 @@ void test_transaction() {
   inputs.push_back(input);
   outputs.push_back(output);
   
-  // create transaction and sign it w/ our private key
+  // create.txaction and sign it w/ our private key
   Tx t0 = Tx::ConstructAndSign(inputs, outputs, public_key, private_key);
 
-  // decode the transaction (this would actually be done after a
-  // node receives word of the transaction via a network call)
+  // decode the.txaction (this would actually be done after a
+  // node receives word of the.txaction via a network call)
   Tx t1 = Tx::DecodeAndVerify(t0.Serialize(), t0.sig, public_key); 
   
   // was it decoded properly? 
@@ -50,6 +68,9 @@ void test_transaction() {
   } else {
     std::cout << "failed to decode tx packet\n";
   }
+
+
+  test_block(public_key, t0);
 }
 
 /*
@@ -72,7 +93,7 @@ void test_server_client() {
 
 int main(int argc, char *argv[]) {
    
-  test_transaction();
+  test_transactions();
   test_server_client();
 
   return 0;

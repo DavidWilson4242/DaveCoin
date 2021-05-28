@@ -19,13 +19,13 @@ struct Mempool {
 
 struct Block {
   
-  std::vector<Tx> trans;
+  std::vector<Tx> tx;
   
   uint64_t index;       /* block index */
   uint8_t solved;       /* solved status of this block */ 
   uint8_t bit_thresh;   /* how many leading 0s are needed to solve */
-  CryptoPP::SHA256 prev_hash;
-  CryptoPP::SHA256 hash;
+  std::string prev_hash;
+  std::string hash;
   uint64_t timestamp;
   uint32_t nonce;
   Tx_Coinbase coinbase;
@@ -34,8 +34,10 @@ struct Block {
   std::string Serialize();
   bool IsSolved();
   void Mine();
-  CryptoPP::SHA256 &Hash();
+  std::string Hash();
   Block();
+
+  static Block DecodeBlock(const std::string& serial);
 
 };
 

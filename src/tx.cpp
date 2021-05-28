@@ -40,13 +40,13 @@ Tx_Input Tx_Input::Decode(const std::string& serial, size_t *cr = nullptr) {
   /* read block hash size, block hash */
   blocksize = *reinterpret_cast<const uint32_t *>(&sdata[*cr]);
   *cr += 4;
-  txi.block_hash = serial.substr(*cr, *cr + blocksize);
+  txi.block_hash = std::string(&sdata[*cr], blocksize);
   *cr += blocksize; 
 
   /* read tx hash size, tx hash */
   inputsize = *reinterpret_cast<const uint32_t *>(&sdata[*cr]);
   *cr += 4;
-  txi.input_hash = serial.substr(*cr, *cr + inputsize);
+  txi.input_hash = std::string(&sdata[*cr], inputsize);
   *cr += inputsize;
 
   /* read index */
@@ -150,40 +150,48 @@ std::string Tx::Serialize() const {
 }
 
 /* decodes a serialized transaction into an object and performs verification */
-Tx Tx::Decode(const std::string& serial) {
+/* cr is an optional cursor into the serial string (i.e if we're serializing
+ * a bigger string that contains a sub-transaction serial, we can use cr
+ * to point to the index we care about, and the value *cr will be incremented
+ * for use in the outer decode function */
+Tx Tx::Decode(const std::string& serial, size_t *cr = nullptr) {
 
   Tx tx;
-  size_t cr;
   uint32_t version, timestamp, keysize, input_size, output_size;
   const char *sdata = serial.c_str();
+  size_t dummy_cr = 0;
   
-  version   = *reinterpret_cast<const uint32_t *>(&sdata[0]);
-  timestamp = *reinterpret_cast<const uint32_t *>(&sdata[4]);
-  keysize   = *reinterpret_cast<const uint32_t *>(&sdata[8]); 
+  if (cr == nullptr) {
+    cr = &dummy_cr;
+  }
+  
+  version   = *reinterpret_cast<const uint32_t *>(&sdata[*cr]);
+  timestamp = *reinterpret_cast<const uint32_t *>(&sdata[*cr + 4]);
+  keysize   = *reinterpret_cast<const uint32_t *>(&sdata[*cr + 8]); 
 
   /* read public key */
-  cr = 12;
-  std::vector<byte> key_material(&sdata[cr], &sdata[cr] + keysize);
+  *cr += 12;
+  std::vector<byte> key_material(&sdata[*cr], &sdata[*cr] + keysize);
   ArraySource key_source(&key_material[0], key_material.size(), true);
   tx.origin.BERDecode(key_source);
-  cr += keysize;
+  *cr += keysize;
 
   /* read input size */
-  input_size = *reinterpret_cast<const uint32_t *>(&sdata[cr]);
-  cr += 4;
+  input_size = *reinterpret_cast<const uint32_t *>(&sdata[*cr]);
+  *cr += 4;
 
   /* read inputs */
   for (int i = 0; i < input_size; i++) {
-    tx.inputs.push_back(Tx_Input::Decode(serial, &cr));
+    tx.inputs.push_back(Tx_Input::Decode(serial, cr));
   }
 
   /* read output size */
-  output_size = *reinterpret_cast<const uint32_t *>(&sdata[cr]);
-  cr += 4;
+  output_size = *reinterpret_cast<const uint32_t *>(&sdata[*cr]);
+  *cr += 4;
 
   /* read outputs */
   for (int i = 0; i < output_size; i++) {
-    tx.outputs.push_back(Tx_Output::Decode(serial, &cr));
+    tx.outputs.push_back(Tx_Output::Decode(serial, cr));
   }
   
   tx.version = version;
