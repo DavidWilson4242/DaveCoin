@@ -14,6 +14,26 @@ std::string Packet::Serialize() {
   return data.str();
 }
 
+/* extracts the message type from a packet.  if the packet is invalid, i.e
+ * it's too short, has an invalid MAGIC_WORD or invalid message type,
+ * CLIENT_NULL will be returned */
+JumboPacket::PacketType JumboPacket::ReadHeader(const std::string& packet) {
+  
+  if (packet.size() < 6) {
+    return JumboPacket::CLIENT_NULL;
+  }
+
+  uint32_t magic = *reinterpret_cast<const uint32_t *>(packet.c_str());
+  uint16_t message_type = *reinterpret_cast<const uint16_t *>(&packet.c_str()[4]);
+
+  if (message_type > HIGHEST_MESSAGE_TYPE) {
+    return JumboPacket::CLIENT_NULL;
+  }
+  
+  return message_type;
+
+}
+
 /*
  * let A_C, A_S represent node A's client and server respectively
  * let B_C, B_S represent node B's client and server respectively
@@ -39,12 +59,13 @@ std::string JumboPacket::SerializeClientPoke(const std::string& IP) {
 }
 
 /* extracts an IP address from ClientPoke message */
-DecodedPacket JumboPacket::DecodeClientPoke(const std::string& packet) {
+DecodedPacket<std::string>
+JumboPacket::DecodeClientPoke(const std::string& packet) {
   
   const char *data = packet.c_str();
   uint32_t ipLength = *(uint32_t *)&data[JumboPacket::DATA_START];
 
-  return DecodedPacket(
+  return DecodedPacket<std::string>(
     JumboPacket::CLIENT_POKE,
     std::string(&data[JumboPacket::DATA_START + 4], ipLength)
   );
@@ -60,9 +81,10 @@ std::string JumboPacket::SerializeHeartbeat() {
 }
 
 /* a heartbeat is essentially just an integer code */ 
-DecodedPacket JumboPacket::DecodeHeartbeat(const std::string& packet) {
+DecodedPacket<std::string> 
+JumboPacket::DecodeHeartbeat(const std::string& packet) {
   
-  return DecodedPacket(
+  return DecodedPacket<std::string>(
     JumboPacket::CLIENT_HEARTBEAT,
     "HEARTBEAT"
   );
@@ -83,7 +105,8 @@ std::string JumboPacket::SerializeSimpleString(const std::string& str) {
 }
 
 /* a simple string can be passed between nodes for debugging */
-DecodedPacket JumboPacket::DecodeSimpleString(const std::string& packet) {
+DecodedPacket<std::string> 
+JumboPacket::DecodeSimpleString(const std::string& packet) {
 
   const char *data = packet.c_str();
   uint32_t strLength = *(uint32_t *)&data[JumboPacket::DATA_START];
@@ -95,7 +118,8 @@ DecodedPacket JumboPacket::DecodeSimpleString(const std::string& packet) {
 
 }
 
-DecodedPacket JumboPacket::DecodePacket(const std::string& packet) {
+template <typename T>
+DecodedPacket<T> JumboPacket::DecodePacket(const std::string& packet) {
   
   const char *data = packet.c_str();
 
@@ -122,7 +146,7 @@ DecodedPacket JumboPacket::DecodePacket(const std::string& packet) {
       throw std::runtime_error("JumboPacket DecodePacket: invalid messageType");
   };
 
-  return DecodedPacket(JumboPacket::CLIENT_NULL, "");
+  return DecodedPacket<std::string>(JumboPacket::CLIENT_NULL, std::string(""));
 
 }
 

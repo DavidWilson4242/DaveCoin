@@ -10,6 +10,8 @@
 #include "server.hpp"
 #include "jumbopacket.hpp"
 
+using namespace JumboPacket;
+
 /*
  * peers.dat is a list of IP addresses of nodes in the network.
  * when a node goes online, it broadcasts to each IP on this list
@@ -94,10 +96,22 @@ void initialize_client_connection(const std::string& serverIP, NodeClient::NClie
 
 void NodeClient::ReceiveMessage(const char *message, size_t size) {
   
-  JumboPacket::DecodedPacket packd = JumboPacket::DecodePacket(std::string(message, size));
+  std::string packet_raw = std::string(message, size);
 
-  if (packd.Is(JumboPacket::SIMPLE_STRING)) {
-    std::cout << "[client rec'd message]: " << packd.data << std::endl;
+  JumboPacket::PacketType pt = JumboPacket::ReadHeader(packet_raw);
+
+  switch (pt) {
+    case JumboPacket::SIMPLE_STRING: {
+      DecodedPacket<std::string> packet = DecodeSimpleString(packet_raw);
+      std::cout << "[client rec'd message]: " << packet.data << std::endl;
+      break;
+    }
+
+    case JumboPacket::CLIENT_NULL:
+    default:
+      std::cerr << "client received invalid message\n";
+      break;
+
   }
 
 }

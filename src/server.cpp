@@ -9,6 +9,8 @@
 #include "client.hpp"
 #include "jumbopacket.hpp"
 
+using namespace JumboPacket;
+
 /*
  * Uses a simple TCP library (see ./tcp)
  *
@@ -109,14 +111,28 @@ void NodeServer::Init() {
 /* fired when the server receives a message from [client] */
 void NodeServer::ReceiveMessage(const Client& client, const char *message, size_t size) {
   
-  JumboPacket::DecodedPacket packd = JumboPacket::DecodePacket(std::string(message, size));
+  std::string packet_raw = std::string(message, size);
+  JumboPacket::PacketType pt = JumboPacket::ReadHeader(packet_raw); 
   
-  if (packd.Is(JumboPacket::CLIENT_HEARTBEAT)) {
-    client_heartbeats[client.getIp()] = true; 
-  } else if (packd.Is(JumboPacket::CLIENT_POKE)) {
-    NodeClient::ConnectToServer(client.getIp());
-  } else if (packd.Is(JumboPacket::SIMPLE_STRING)) {
-    std::cout << "[server rec'd message]: " << packd.data << std::endl;
+  switch (pt) {
+    case JumboPacket::CLIENT_HEARTBEAT: 
+      client_heartbeats[client.getIp()] = true; 
+      break;
+
+    case JumboPacket::CLIENT_POKE:
+      NodeClient::ConnectToServer(client.getIp());
+      break;
+
+    case JumboPacket::SIMPLE_STRING: {
+      auto packet = JumboPacket::DecodeSimpleString(packet_raw);
+      std::cout << "[server rec'd message]: " << packet.data << std::endl;
+      break;
+    }
+  
+    case JumboPacket::CLIENT_NULL:
+    default:
+      std::cout << "server received invalid message\n";
+      break;
   }
 
 }
