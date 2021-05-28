@@ -3,6 +3,7 @@
 #include <iostream>
 #include <iomanip>
 #include <limits>
+#include <sstream>
 #include <cryptopp/rsa.h>
 #include "blockchain.hpp"
 
