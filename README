@@ -1,5 +1,8 @@
 JumboCoin is a hobbyist cryptocurrency that aspires to be a mini version of Bitcoin written from scratch.
 
+You'll need to install the CryptoPP++ library:
+https://github.com/weidai11/cryptopp
+
 
 There's no makefile yet.  For now, compile with:
-g++ -DNDEBUG -g2 -fPIC -pthread -pipe *.cpp tcp/src/*.cpp -o test -std=c++17 -lcryptopp
+g++ -DNDEBUG -g2 -fPIC -pthread -pipe src/*.cpp tcp/src/*.cpp -o test -std=c++17 -lcryptopp
