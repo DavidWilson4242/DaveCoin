@@ -93,7 +93,8 @@ void initialize_client_connection(const std::string& serverIP, NodeClient::NClie
   heartbeat.join();
 }
 
-
+/* this function is called when the server I'm listening to sends me a message */
+/* see jumbopacket.hpp and docs/jumbopacket.txt for documentation on message formats */
 void NodeClient::ReceiveMessage(const char *message, size_t size) {
   
   std::string packet_raw = std::string(message, size);
@@ -117,7 +118,7 @@ void NodeClient::ReceiveMessage(const char *message, size_t size) {
 }
 
 void NodeClient::Disconnected(const pipe_ret_t& pipe) {
-  std::cout << "disconnected\n";
+  std::cout << "my client disconnected from a server\n";
 }
 
 void NodeClient::ConnectToServer(const std::string& IP) {
