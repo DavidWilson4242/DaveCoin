@@ -12,9 +12,7 @@
 #include "tx.hpp"
 
 struct Mempool {
-  
   std::vector<Tx> trans;
-
 };
 
 struct Block {
@@ -31,7 +29,7 @@ struct Block {
   Tx_Coinbase coinbase;
   
   /* functions */
-  std::string Serialize();
+  std::string Serialize() const;
   bool IsSolved();
   void Mine();
   std::string Hash();

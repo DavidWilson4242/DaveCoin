@@ -2,6 +2,7 @@
 #define SERVER_HPP
 
 #include "../tcp/include/tcp_server.h"
+#include "blockchain.hpp"
 
 namespace NodeServer {
   
@@ -11,6 +12,7 @@ namespace NodeServer {
   bool HasClientWithIP(const std::string& IP); 
   void ReceiveMessage(const Client& client, const char *message, size_t size);
   void ClientDisconnected(const Client& client);
+  void BroadcastBlock(const Block& block);
   void Init();
 
 };

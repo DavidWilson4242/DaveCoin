@@ -16,6 +16,7 @@ using namespace JumboPacket;
  *
  */
 
+TcpServer server;
 std::map<std::string, Client> connected_clients;
 std::map<std::string, bool> client_heartbeats;
 
@@ -40,9 +41,9 @@ void start_heartbeat_loop(TcpServer& server,
       
       /* no heartbeat in the time interval? kill connection */ 
       if (client_heartbeats.find(IP) == client_heartbeats.end()) {
-	NodeServer::ClientDisconnected(client);
-	server.killClient(client);
-	connected_clients.erase(IP);
+        NodeServer::ClientDisconnected(client);
+        server.killClient(client);
+        connected_clients.erase(IP);
       }
     } 
 
@@ -65,7 +66,6 @@ bool NodeServer::HasClientWithIP(const std::string& IP) {
 
 void NodeServer::Init() {
 
-  TcpServer server;
   server_observer_t observer;
   
   pipe_ret_t pipe = server.start(NodeServer::PORT);
@@ -85,9 +85,9 @@ void NodeServer::Init() {
     while (true) {
       Client client = server.acceptClient(0);
       if (client.isConnected()) {
-	std::cout << "new client connected with ip " << client.getIp() << std::endl;
+        std::cout << "new client connected with ip " << client.getIp() << std::endl;
       } else {
-	throw std::runtime_error("Server failed to accept clients");
+        throw std::runtime_error("Server failed to accept clients");
       }
 
       connected_clients[client.getIp()] = client;
@@ -97,14 +97,25 @@ void NodeServer::Init() {
     } 
   };
 
-  std::thread heartbeatLoop(start_heartbeat_loop, 
-			    std::ref(server),
-			    std::ref(connected_clients),
-			    std::ref(client_heartbeats));
+  std::thread heartbeatLoop(
+    start_heartbeat_loop, 
+    std::ref(server),
+    std::ref(connected_clients),
+    std::ref(client_heartbeats)
+  );
   std::thread clientLoop(start_client_loop);
 
   heartbeatLoop.join();
   clientLoop.join();
+
+}
+
+/* broadcasts a block to all clients */
+void NodeServer::BroadcastBlock(const Block& block) {
+
+  std::string message = JumboPacket::SerializeMinedBlock(block); 
+  server.sendToAllClients(message.c_str(), message.size());  
+
 
 }
 

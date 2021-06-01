@@ -17,7 +17,7 @@ Block::Block() {
 
 }
 
-std::string Block::Serialize() {
+std::string Block::Serialize() const {
   
   std::stringstream s;
 

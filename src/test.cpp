@@ -69,7 +69,6 @@ void test_transactions() {
     std::cout << "failed to decode tx packet\n";
   }
 
-
   test_block(public_key, t0);
 }
 

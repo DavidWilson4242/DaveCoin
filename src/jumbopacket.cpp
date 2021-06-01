@@ -118,6 +118,24 @@ JumboPacket::DecodeSimpleString(const std::string& packet) {
 
 }
 
+std::string JumboPacket::SerializeMinedBlock(const Block& block) {
+  
+  Packet packet(JumboPacket::MINED_BLOCK);
+  packet.data << block.Serialize();
+  return packet.Serialize();
+
+}
+
+DecodedPacket<Block>
+JumboPacket::DecodeMinedBlock(const std::string& packet) {
+
+  return DecodedPacket<Block>(
+    JumboPacket::MINED_BLOCK,
+    Block::DecodeBlock(packet.substr(JumboPacket::DATA_START))
+  );
+
+}
+
 template <typename T>
 DecodedPacket<T> JumboPacket::DecodePacket(const std::string& packet) {
   
@@ -142,6 +160,8 @@ DecodedPacket<T> JumboPacket::DecodePacket(const std::string& packet) {
       return JumboPacket::DecodeHeartbeat(packet);
     case SIMPLE_STRING:
       return JumboPacket::DecodeSimpleString(packet);
+    case MINED_BLOCK:
+      return JumboPacket::DecodeMinedBlock(packet);
     default:
       throw std::runtime_error("JumboPacket DecodePacket: invalid messageType");
   };
@@ -161,7 +181,7 @@ std::string JumboPacket::GetMyIP() {
   if (sock == -1) {
     throw std::runtime_error("getMyIp: could not socket");
   }
-
+  
   memset(&loopback, 0, sizeof(loopback));
   loopback.sin_family = AF_INET;
   loopback.sin_addr.s_addr = 1337;   // can be any IP address

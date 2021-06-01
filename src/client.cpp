@@ -61,8 +61,8 @@ void initialize_client_connection(const std::string& serverIP, NodeClient::NClie
       std::string message = JumboPacket::SerializeHeartbeat();
       pipe_ret_t ret = nc->client.sendMsg(message.c_str(), message.size());
       if (!ret.success) {
-	nc->alive = false;
-	break;
+	      nc->alive = false;
+	      break;
       }
       sleep(ceil((float)NodeServer::KEEP_ALIVE_TIME/3.0));
     }
@@ -76,7 +76,7 @@ void initialize_client_connection(const std::string& serverIP, NodeClient::NClie
     std::string message = JumboPacket::SerializeClientPoke(JumboPacket::GetMyIP());
     nc->client.sendMsg(message.c_str(), message.size());
   }
-
+  
   /* send messages to server */
   while (nc->alive) {
     std::string message = "hello from client " + JumboPacket::GetMyIP();
@@ -103,8 +103,14 @@ void NodeClient::ReceiveMessage(const char *message, size_t size) {
 
   switch (pt) {
     case JumboPacket::SIMPLE_STRING: {
-      DecodedPacket<std::string> packet = DecodeSimpleString(packet_raw);
+      DecodedPacket<std::string> packet = JumboPacket::DecodeSimpleString(packet_raw);
       std::cout << "[client rec'd message]: " << packet.data << std::endl;
+      break;
+    }
+
+    case JumboPacket::MINED_BLOCK: {
+      DecodedPacket<Block> packet = JumboPacket::DecodeMinedBlock(packet_raw);
+      
       break;
     }
 
@@ -141,9 +147,10 @@ void NodeClient::ConnectToServer(const std::string& IP) {
 
 void NodeClient::BroadcastTx(std::vector<Tx_Input>& inputs,
                              std::vector<Tx_Output>& outputs,
-			     const DSA::PublicKey& public_key,
-			     const DSA::PrivateKey& private_key) {
-  
+			                       const DSA::PublicKey& public_key,
+			                       const DSA::PrivateKey& private_key) {
+ 
+
 
 }
 
