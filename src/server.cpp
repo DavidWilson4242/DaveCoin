@@ -57,10 +57,6 @@ bool NodeServer::HasClientWithIP(const std::string& IP) {
   return false;
 }
 
-void NodeServer::StartMining() {
-
-}
-
 void NodeServer::Init() {
 
   server_observer_t observer;
@@ -93,8 +89,17 @@ void NodeServer::Init() {
       sleep(1);
     } 
   };
-
+  
+  /* for testing... mine a random block */
   auto start_mine_loop = [&]() {
+    auto [target_public, target_private] = Sig::GenerateKeys();
+    Block b;
+    b.hash = "0";
+    b.prev_hash = "0";
+    b.coinbase.target = target_public;
+    b.coinbase.coins = 100;
+    b.bit_thresh = 1;
+    server.miner.MineBlock(b);
   };
 
   /* start up all of our threads */

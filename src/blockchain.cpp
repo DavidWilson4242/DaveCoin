@@ -164,8 +164,6 @@ std::string Block::Hash() {
   
   hash = Sig::CalculateSHA256(Serialize());
 
-  std::cout << "GOT HASH " << hash << std::endl;
-
   return hash;
   
 }

@@ -116,7 +116,7 @@ void NodeClient::ReceiveMessage(const char *message, size_t size) {
 
     case JumboPacket::MINED_BLOCK: {
       DecodedPacket<Block> packet = JumboPacket::DecodeMinedBlock(packet_raw);
-      
+      std::cout << "CLIENT GOT MINED BLOCK\n";  
       break;
     }
 
@@ -135,9 +135,11 @@ void NodeClient::Disconnected(const pipe_ret_t& pipe) {
 
 void NodeClient::ConnectToServer(const std::string& IP) {
   /* don't try to connect to myself... */
+  /*
   if (JumboPacket::GetMyIP() == IP) {
     return;
   } 
+  */
 
   /* don't connect a second time */
   for (const auto ec: active_clients) {

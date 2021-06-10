@@ -1,4 +1,9 @@
+#include <iostream>
+#include "jumbopacket.hpp"
 #include "mine.hpp"
+#include "server.hpp"
+
+using namespace JumboPacket;
 
 bool Miner::IsMined(const Block& b) {
   
@@ -22,11 +27,15 @@ void Miner::MineBlock(Block& b) {
 
   while (true) {
 
+    bool good = false;
+
     for (b.nonce = 0; b.nonce < UINT32_MAX; b.nonce++) {
       b.Hash();
 
       if (Miner::IsMined(b)) {
-	break;
+        Miner::BroadcastMinedBlock(b);
+        good = true;
+        break;
       }
       
       /* every so often, check if we received and validated a new block
@@ -34,9 +43,14 @@ void Miner::MineBlock(Block& b) {
        * next block */
       attempts++;
       if (attempts % 10000 == 0) {
-	break;
+        good = true;
+        break;
       }
     }  
+
+    if (good) {
+      break;
+    }
 
     b.timestamp = std::time(0);
   }
@@ -45,6 +59,7 @@ void Miner::MineBlock(Block& b) {
 
 void Miner::BroadcastMinedBlock(Block& b) {
 
-  
+  EncodedPacket p = JumboPacket::SerializeMinedBlock(b); 
+  NodeServer::SendMessageToAllClients(p);
 
 }

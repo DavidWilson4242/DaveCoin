@@ -20,7 +20,7 @@ $(TARGET_EXEC): $(BUILD_DIR) $(OBJS)
 
 # c++ source
 $(BUILD_DIR)/%.cpp.o: %.cpp $(BUILD_DIR)
-	$(CXX) $(CPPFLAGS) $(LD_FLAGS) -c $< -o $(BUILD_DIR)/$(notdir $@)
+	$(CXX) $(CPPFLAGS) -c $< -o $(BUILD_DIR)/$(notdir $@)
 
 
 .PHONY: clean
