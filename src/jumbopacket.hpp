@@ -5,6 +5,8 @@
 #include <sstream>
 #include <cinttypes>
 #include "blockchain.hpp"
+#include "tcp/include/tcp_client.h"
+#include "tcp/include/tcp_server.h"
 
 /*
  *  every message sent from node to node is done through the JumboPacket::Packet
@@ -28,21 +30,21 @@ namespace JumboPacket {
   const PacketType SIMPLE_STRING    = 0x0003;
   const PacketType MINED_BLOCK      = 0x0004;
   const PacketType BLOCK_HEADERS    = 0x0005;
+  const PacketType BROADCAST_TX     = 0x0006;
   
   const int MESSAGE_TYPE_START = 0x04;
   const int DATA_START = 0x06;
   
-  struct Packet {
+  /* a client->server message also uses this packet, but
+   * the targets field is always empty */
+  struct EncodedPacket {
+    
+    std::vector<Client*> targets;
+    std::string serial;
 
-    std::stringstream data;
-    uint16_t messageType;
-  
-    std::string Serialize();
-
-    Packet(uint16_t message_type) {
-      data.write(reinterpret_cast<const char *>(&JumboPacket::MAGIC_WORD), sizeof(uint32_t));
-      data.write(reinterpret_cast<const char *>(&message_type), sizeof(uint16_t));
-    };
+    void AddTarget(Client *client) {
+      targets.push_back(client);
+    }
 
   };
   
@@ -58,6 +60,21 @@ namespace JumboPacket {
 
   };
 
+  struct Packet {
+    
+    std::stringstream data;
+    PacketType messageType;
+  
+    EncodedPacket Serialize();
+
+    Packet(PacketType message_type) {
+      data.write(reinterpret_cast<const char *>(&JumboPacket::MAGIC_WORD), sizeof(uint32_t));
+      data.write(reinterpret_cast<const char *>(&message_type), sizeof(uint16_t));
+    };
+
+  };
+  
+
   std::string GetMyIP();
   PacketType ReadHeader(const std::string& packet);
   
@@ -66,19 +83,19 @@ namespace JumboPacket {
   
   /* mw: CLIENT_POKE_WORD */ 
   DecodedPacket<std::string> DecodeClientPoke(const std::string& packet);
-  std::string                SerializeClientPoke(const std::string& IP);
+  EncodedPacket              SerializeClientPoke(const std::string& IP);
 
   /* mw: CLIENT_HEART_BEAT_WORD */
   DecodedPacket<std::string> DecodeHeartbeat(const std::string& packet);
-  std::string                SerializeHeartbeat();
+  EncodedPacket              SerializeHeartbeat();
 
   /* mw: SIMPLE_STRING */
   DecodedPacket<std::string> DecodeSimpleString(const std::string& packet);
-  std::string                SerializeSimpleString(const std::string& str);
+  EncodedPacket              SerializeSimpleString(const std::string& str);
 
   /* mw: MINED_BLOCK */
   DecodedPacket<Block>       DecodeMinedBlock(const std::string& packet);
-  std::string                SerializeMinedBlock(const Block& block);
+  EncodedPacket              SerializeMinedBlock(const Block& block);
 
 };
 

@@ -5,16 +5,21 @@
 #include <vector>
 #include <cryptopp/dsa.h>
 #include "tcp/include/tcp_client.h"
+#include "jumbopacket.hpp"
 #include "tx.hpp"
 
 namespace NodeClient {
 
-  struct NClient {
+  class NClient {
+    public:
     std::string serverIP;
     TcpClient client;
     client_observer_t observer;
     std::thread *thread; /* todo fix leak */
     bool alive = false;
+    
+    /* sends a message to my server */
+    pipe_ret_t SendMessage(const JumboPacket::EncodedPacket& message);
   };
   
   const uint32_t PORT = 8080;

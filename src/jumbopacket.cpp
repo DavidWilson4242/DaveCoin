@@ -10,8 +10,10 @@
 
 using namespace JumboPacket;
 
-std::string Packet::Serialize() {
-  return data.str();
+EncodedPacket Packet::Serialize() {
+  EncodedPacket p;
+  p.serial = data.str();
+  return p;
 }
 
 /* extracts the message type from a packet.  if the packet is invalid, i.e
@@ -46,7 +48,7 @@ JumboPacket::PacketType JumboPacket::ReadHeader(const std::string& packet) {
  *
  * TLDR: it's a handshake.  your client connects to my server, my
  * client will connect to your server */ 
-std::string JumboPacket::SerializeClientPoke(const std::string& IP) {
+EncodedPacket JumboPacket::SerializeClientPoke(const std::string& IP) {
   
   Packet packet(JumboPacket::CLIENT_POKE);
   uint32_t size = (uint32_t)IP.size();
@@ -72,7 +74,7 @@ JumboPacket::DecodeClientPoke(const std::string& packet) {
 
 }
 
-std::string JumboPacket::SerializeHeartbeat() {
+EncodedPacket JumboPacket::SerializeHeartbeat() {
   
   Packet packet(JumboPacket::CLIENT_HEARTBEAT);
 
@@ -91,7 +93,7 @@ JumboPacket::DecodeHeartbeat(const std::string& packet) {
     
 }
 
-std::string JumboPacket::SerializeSimpleString(const std::string& str) {
+EncodedPacket JumboPacket::SerializeSimpleString(const std::string& str) {
 
   Packet packet(JumboPacket::SIMPLE_STRING);
   
@@ -118,7 +120,7 @@ JumboPacket::DecodeSimpleString(const std::string& packet) {
 
 }
 
-std::string JumboPacket::SerializeMinedBlock(const Block& block) {
+EncodedPacket JumboPacket::SerializeMinedBlock(const Block& block) {
   
   Packet packet(JumboPacket::MINED_BLOCK);
   packet.data << block.Serialize();

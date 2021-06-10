@@ -19,7 +19,7 @@
  *
  */
 
-namespace Miner {
+struct Miner {
   
   bool IsMined(const Block& b); 
   void MineBlock(Block& b);

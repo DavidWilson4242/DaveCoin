@@ -10,15 +10,9 @@
 #include "jumbopacket.hpp"
 
 using namespace JumboPacket;
+using namespace NodeServer;
 
-/*
- * Uses a simple TCP library (see ./tcp)
- *
- */
-
-NodeServer::NServer server;
-std::map<std::string, Client> connected_clients;
-std::map<std::string, bool> client_heartbeats;
+NServer server;
 
 /* every NodeServer::KEEP_ALIVE_TIME, the server must receive a HEARTBEAT
  * from a client.  if a heartbeat is not received during that interval,
@@ -27,27 +21,26 @@ std::map<std::string, bool> client_heartbeats;
  *
  * I couldn't find a working event handler to detect when a client immediately
  * disconnects, so this is the solution that I'm going with for now. */
-void start_heartbeat_loop(NodeServer::NServer& server, 
-			  std::map<std::string, Client>& connected_clients, 
-			  std::map<std::string, bool>& client_heartbeats) {
+static void start_heartbeat_loop(NodeServer::NServer& server) { 
   
   while (true) {
    
-    for (auto i = connected_clients.begin(), e = connected_clients.end(); i != e;) {
+    for (auto i = server.connected_clients.begin(), 
+         e = server.connected_clients.end(); i != e;) {
       
       auto it = i++;
       const std::string& IP = it->first;
       Client& client = it->second;
       
       /* no heartbeat in the time interval? kill connection */ 
-      if (client_heartbeats.find(IP) == client_heartbeats.end()) {
+      if (server.client_heartbeats.find(IP) == server.client_heartbeats.end()) {
         NodeServer::ClientDisconnected(client);
         server.tserver.killClient(client);
-        connected_clients.erase(IP);
+        server.connected_clients.erase(IP);
       }
     } 
 
-    client_heartbeats.clear();
+    server.client_heartbeats.clear();
     sleep(NodeServer::KEEP_ALIVE_TIME);
 
   }
@@ -56,7 +49,7 @@ void start_heartbeat_loop(NodeServer::NServer& server,
 
 /* is there a client with IP [IP] listening to me? */
 bool NodeServer::HasClientWithIP(const std::string& IP) {
-  for (auto& pair: connected_clients) {
+  for (auto& pair: server.connected_clients) {
     if (pair.first == IP) {
       return true;
     }
@@ -94,31 +87,57 @@ void NodeServer::Init() {
         throw std::runtime_error("Server failed to accept clients");
       }
 
-      connected_clients[client.getIp()] = client;
-      client_heartbeats[client.getIp()] = true;
+      server.connected_clients[client.getIp()] = client;
+      server.client_heartbeats[client.getIp()] = true;
       
       sleep(1);
     } 
   };
 
+  auto start_mine_loop = [&]() {
+  };
+
+  /* start up all of our threads */
+
+  /* HEARTBEAT LOOP -- make sure we get pings from clients */
   std::thread heartbeatLoop(
     start_heartbeat_loop, 
-    std::ref(server),
-    std::ref(connected_clients),
-    std::ref(client_heartbeats)
+    std::ref(server)
   );
+
+  /* CLIENT LOOP -- listen for messages from clients */
   std::thread clientLoop(start_client_loop);
+
+  /* MINER LOOP -- mine coins! */
+  std::thread mineLoop(start_mine_loop);
 
   heartbeatLoop.join();
   clientLoop.join();
+  mineLoop.join();
 
+}
+
+/* sends a message to client(s)
+ * the clients to send to are determined by the packet.targets vector */
+void NodeServer::SendMessage(const JumboPacket::EncodedPacket& packet) {
+  
+  const std::string& serial = packet.serial;
+
+  for (auto client: packet.targets) {
+    server.tserver.sendToClient(*client, serial.c_str(), serial.size());
+  }
+
+}
+
+void NodeServer::SendMessageToAllClients(const JumboPacket::EncodedPacket& packet) {
+  server.tserver.sendToAllClients(packet.serial.c_str(), packet.serial.size());  
 }
 
 /* broadcasts a block to all clients */
 void NodeServer::BroadcastBlock(const Block& block) {
 
-  std::string message = JumboPacket::SerializeMinedBlock(block); 
-  server.tserver.sendToAllClients(message.c_str(), message.size());  
+  auto packet = JumboPacket::SerializeMinedBlock(block); 
+  NodeServer::SendMessageToAllClients(packet);
 
 
 }
@@ -131,7 +150,7 @@ void NodeServer::ReceiveMessage(const Client& client, const char *message, size_
   
   switch (pt) {
     case JumboPacket::CLIENT_HEARTBEAT: 
-      client_heartbeats[client.getIp()] = true; 
+      server.client_heartbeats[client.getIp()] = true; 
       break;
 
     case JumboPacket::CLIENT_POKE:
@@ -143,11 +162,17 @@ void NodeServer::ReceiveMessage(const Client& client, const char *message, size_
       std::cout << "[server rec'd message]: " << packet.data << std::endl;
       break;
     }
-  
+
+    case JumboPacket::BROADCAST_TX: {
+      
+      break;
+    }
+
     case JumboPacket::CLIENT_NULL:
     default:
       std::cout << "server received invalid message\n";
       break;
+
   }
 
 }

@@ -18,12 +18,22 @@ bool Miner::IsMined(const Block& b) {
 
 void Miner::MineBlock(Block& b) {
   
+  uint64_t attempts = 0;
+
   while (true) {
 
     for (b.nonce = 0; b.nonce < UINT32_MAX; b.nonce++) {
       b.Hash();
 
       if (Miner::IsMined(b)) {
+	break;
+      }
+      
+      /* every so often, check if we received and validated a new block
+       * from another node.  if we did, then we should move onto the 
+       * next block */
+      attempts++;
+      if (attempts % 10000 == 0) {
 	break;
       }
     }  

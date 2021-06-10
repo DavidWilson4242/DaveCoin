@@ -11,6 +11,7 @@
 #include "jumbopacket.hpp"
 
 using namespace JumboPacket;
+using namespace NodeClient;
 
 /*
  * peers.dat is a list of IP addresses of nodes in the network.
@@ -58,8 +59,9 @@ void initialize_client_connection(const std::string& serverIP, NodeClient::NClie
    */
   auto keep_alive = [&]() {
     while (nc->alive) {
-      std::string message = JumboPacket::SerializeHeartbeat();
-      pipe_ret_t ret = nc->client.sendMsg(message.c_str(), message.size());
+
+      auto message = JumboPacket::SerializeHeartbeat();
+      pipe_ret_t ret = nc->SendMessage(message);
       if (!ret.success) {
 	      nc->alive = false;
 	      break;
@@ -73,15 +75,15 @@ void initialize_client_connection(const std::string& serverIP, NodeClient::NClie
    * my server's IP address.  if they are not connected to my server, they
    * will try to connect */
   if (!NodeServer::HasClientWithIP(serverIP)) {
-    std::string message = JumboPacket::SerializeClientPoke(JumboPacket::GetMyIP());
-    nc->client.sendMsg(message.c_str(), message.size());
+    auto message = JumboPacket::SerializeClientPoke(JumboPacket::GetMyIP());
+    nc->SendMessage(message);
   }
   
   /* send messages to server */
   while (nc->alive) {
     std::string message = "hello from client " + JumboPacket::GetMyIP();
-    std::string serial = JumboPacket::SerializeSimpleString(message); 
-    pipe_ret_t ret = nc->client.sendMsg(serial.c_str(), serial.size());
+    auto serial = JumboPacket::SerializeSimpleString(message); 
+    pipe_ret_t ret = nc->SendMessage(serial);
     if (!ret.success) {
       std::cout << "failed to send message to server " << serverIP << ".. aborting.\n";
       nc->alive = false;
@@ -91,6 +93,10 @@ void initialize_client_connection(const std::string& serverIP, NodeClient::NClie
   }
 
   heartbeat.join();
+}
+
+pipe_ret_t NClient::SendMessage(const JumboPacket::EncodedPacket& message) {
+  return client.sendMsg(message.serial.c_str(), message.serial.size());
 }
 
 /* this function is called when the server I'm listening to sends me a message */
