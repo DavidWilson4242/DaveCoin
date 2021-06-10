@@ -198,10 +198,7 @@ Tx Tx::Decode(const std::string& serial, size_t *cr = nullptr) {
   tx.timestamp = timestamp;
 
   /* generate transaction hash */
-  CryptoPP::SHA256 sha;
-  sha.Update(reinterpret_cast<const byte *>(serial.data()), serial.size());
-  tx.hash.resize(sha.DigestSize());
-  sha.Final((byte *)&tx.hash[0]);
+  tx.hash = Sig::CalculateSHA256(serial);
   
   return tx;
 

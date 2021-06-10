@@ -9,6 +9,8 @@
 using namespace CryptoPP;
 
 namespace Sig {
+  
+  std::string CalculateSHA256(const std::string& data);
 
   std::tuple<DSA::PublicKey, DSA::PrivateKey> GenerateKeys();
 

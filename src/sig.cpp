@@ -3,6 +3,19 @@
 
 using namespace CryptoPP;
 
+std::string Sig::CalculateSHA256(const std::string& data) {
+  
+  std::string digest;
+
+  CryptoPP::SHA256 sha;
+  sha.Update(reinterpret_cast<const byte *>(data.data()), data.size());
+  digest.resize(sha.DigestSize());
+  sha.Final((byte *)&digest[0]);
+
+  return std::move(digest);
+
+}
+
 /* generates a DSA pair of public & private keys */
 std::tuple<DSA::PublicKey, DSA::PrivateKey>
 Sig::GenerateKeys() {

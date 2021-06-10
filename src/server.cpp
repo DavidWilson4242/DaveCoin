@@ -16,7 +16,7 @@ using namespace JumboPacket;
  *
  */
 
-TcpServer server;
+NodeServer::NServer server;
 std::map<std::string, Client> connected_clients;
 std::map<std::string, bool> client_heartbeats;
 
@@ -27,7 +27,7 @@ std::map<std::string, bool> client_heartbeats;
  *
  * I couldn't find a working event handler to detect when a client immediately
  * disconnects, so this is the solution that I'm going with for now. */
-void start_heartbeat_loop(TcpServer& server, 
+void start_heartbeat_loop(NodeServer::NServer& server, 
 			  std::map<std::string, Client>& connected_clients, 
 			  std::map<std::string, bool>& client_heartbeats) {
   
@@ -42,7 +42,7 @@ void start_heartbeat_loop(TcpServer& server,
       /* no heartbeat in the time interval? kill connection */ 
       if (client_heartbeats.find(IP) == client_heartbeats.end()) {
         NodeServer::ClientDisconnected(client);
-        server.killClient(client);
+        server.tserver.killClient(client);
         connected_clients.erase(IP);
       }
     } 
@@ -64,11 +64,15 @@ bool NodeServer::HasClientWithIP(const std::string& IP) {
   return false;
 }
 
+void NodeServer::StartMining() {
+
+}
+
 void NodeServer::Init() {
 
   server_observer_t observer;
   
-  pipe_ret_t pipe = server.start(NodeServer::PORT);
+  pipe_ret_t pipe = server.tserver.start(NodeServer::PORT);
   if (!pipe.success) {
     throw std::runtime_error("Server setup failed.\n");
   }
@@ -79,11 +83,11 @@ void NodeServer::Init() {
   observer.incoming_packet_func = NodeServer::ReceiveMessage;
   observer.disconnected_func = NodeServer::ClientDisconnected;
   observer.wantedIp = "";
-  server.subscribe(observer);
+  server.tserver.subscribe(observer);
 
   auto start_client_loop = [&]() {
     while (true) {
-      Client client = server.acceptClient(0);
+      Client client = server.tserver.acceptClient(0);
       if (client.isConnected()) {
         std::cout << "new client connected with ip " << client.getIp() << std::endl;
       } else {
@@ -114,7 +118,7 @@ void NodeServer::Init() {
 void NodeServer::BroadcastBlock(const Block& block) {
 
   std::string message = JumboPacket::SerializeMinedBlock(block); 
-  server.sendToAllClients(message.c_str(), message.size());  
+  server.tserver.sendToAllClients(message.c_str(), message.size());  
 
 
 }

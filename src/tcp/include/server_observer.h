@@ -4,7 +4,7 @@
 #define INTERCOM_SERVER_OBSERVER_H
 
 #include <string>
-#include "client.h"
+#include "tclient.h"
 
 typedef void (incoming_packet_func_server)(const Client & client, const char * msg, size_t size);
 typedef incoming_packet_func_server* incoming_packet_func_server_t;

@@ -6,6 +6,7 @@
 #include <sstream>
 #include <cryptopp/rsa.h>
 #include "blockchain.hpp"
+#include "sig.hpp"
 
 Block::Block() {
   
@@ -23,6 +24,9 @@ std::string Block::Serialize() const {
 
   /* write block index */
   s.write(reinterpret_cast<const char *>(&index), sizeof(uint64_t));
+
+  /* write bit_thresh */
+  s.write(reinterpret_cast<const char *>(&bit_thresh), sizeof(uint8_t));
   
   /* write previous hash size & prev_hash */
   uint32_t hash_size = prev_hash.size();
@@ -66,6 +70,7 @@ Block Block::DecodeBlock(const std::string& serial) {
   size_t cr = 0;
 
   uint64_t blockindex;
+  uint8_t bit_thresh;
   uint32_t hashlen;
   std::string prev_hash;
   uint32_t nonce;
@@ -79,6 +84,10 @@ Block Block::DecodeBlock(const std::string& serial) {
   /* read block index */
   blockindex = *reinterpret_cast<const uint64_t *>(&data[cr]);
   cr += sizeof(uint64_t);
+
+  /* read bit_thresh */
+  bit_thresh = *reinterpret_cast<const uint8_t *>(&data[cr]);
+  cr += sizeof(uint8_t);
 
   /* read prev_hash */
   hashlen = *reinterpret_cast<const uint32_t *>(&data[cr]);
@@ -113,6 +122,7 @@ Block Block::DecodeBlock(const std::string& serial) {
 
   /* build block */
   b.index = blockindex;
+  b.bit_thresh = bit_thresh;
   b.prev_hash = prev_hash;
   b.nonce = nonce;
   b.timestamp = timestamp;
@@ -148,8 +158,14 @@ void Blockchain::AddBlock(Block& b) {
 
 
 std::string Block::Hash() {
+  
+  /* generate the string we want to hash */
+  std::string hashdat = Serialize();
+  
+  hash = Sig::CalculateSHA256(Serialize());
 
-  hash = "0";
+  std::cout << "GOT HASH " << hash << std::endl;
+
   return hash;
   
 }
